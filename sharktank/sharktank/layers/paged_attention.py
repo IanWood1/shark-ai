@@ -12,7 +12,7 @@ and dims floating around everywhere.
 """
 
 from typing import Optional, Tuple, Union, List
-
+from sharktank.kernels.mlir_kernel import *
 import abc
 import math
 
@@ -97,6 +97,110 @@ def KVCacheGatherKernel():
 kv_cache_gather = KVCacheGatherKernel()
 
 # Paged Attention Implementation
+
+
+def PagedAttentionKernel():
+    GQA_REP = StaticDim.GQA_REP
+    BLOCK_SEQ_STRIDE = StaticDim.BLOCK_SEQ_STRIDE
+    HEAD_COUNT_KV = StaticDim.HEAD_COUNT_KV
+    BLOCK_SEQ_LEN = DynDim.BLOCK_SEQ_LEN
+    SEQ_LEN = DynDim.SEQ_LEN
+    QEMB = StaticDim.QEMB
+    HEAD_DIM = StaticDim.HED_DIM
+    BATCH = StaticDim.BATCH
+    UNIT = StaticDim.SCALE
+
+    SOURCE_TY = Dtype.SOURCE_TY
+    SCALE_TY = Dtype.SCALE_TY
+    RESULT_TY = SOURCE_TY
+
+    @mlir_kernel(
+        inputs=(
+            MLIRTensor[BATCH, SEQ_LEN, HEAD_COUNT_KV, GQA_REP, QEMB, SOURCE_TY],
+            MLIRTensor[
+                BATCH,
+                BLOCK_SEQ_LEN,
+                BLOCK_SEQ_STRIDE,
+                HEAD_COUNT_KV,
+                HEAD_DIM,
+                SOURCE_TY,
+            ],
+            MLIRTensor[
+                BATCH,
+                BLOCK_SEQ_LEN,
+                BLOCK_SEQ_STRIDE,
+                HEAD_COUNT_KV,
+                HEAD_DIM,
+                SOURCE_TY,
+            ],
+            MLIRTensor[UNIT, SCALE_TY],
+            MLIRTensor[BATCH, SEQ_LEN, BLOCK_SEQ_LEN, SOURCE_TY],
+        ),
+        results=(
+            MLIRTensor[BATCH, HEAD_COUNT_KV, GQA_REP, SEQ_LEN, HEAD_DIM, RESULT_TY],
+        ),
+    )
+    def paged_attention_kernel(q, k, v, scale, mask, result):
+        # We generate the tensor.extract version for now, but once we have
+        # iree_linalg_ext.gather, we should be generating that instead.
+        mlir = """
+        module {
+        util.func @{{kernel_name}}(
+            %q: !q, %k: !k, %v : !v, %scale : !scale, %mask : !mask
+        ) -> !result {
+          %c0 = arith.constant 0 : index
+          %c1 = arith.constant 1 : index
+          %scale_scalar = tensor.extract %scale[%c0] : !scale
+          %seq_len = tensor.dim %q, %c1 : !q
+          %empty = tensor.empty(%seq_len) : !result
+          %result = iree_linalg_ext.attention {indexing_maps = [
+                affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d2, d1, d7, d4)>, 
+                affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d5, d6, d1, d4)>, 
+                affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d5, d6, d1, d3)>, 
+                affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> ()>, 
+                affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d2, d5)>, 
+                affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d1, d7, d2, d3)>]}
+            ins(%q, %k, %v, %scale_scalar, %mask : !q, !k, !v, f32, !mask) 
+            outs(%empty : !result) {
+          ^bb0(%score: f32):
+             iree_linalg_ext.yield %score : f32
+          } -> !result
+          util.return %result : !result
+        }
+        }
+        """
+        return MLIRSpec(mlir)
+
+    return paged_attention_kernel
+
+
+_paged_attention_kernel = PagedAttentionKernel()
+
+
+def paged_attention_kernel(
+    q: torch.Tensor,
+    k: torch.Tensor,
+    v: torch.Tensor,
+    mask: Optional[torch.Tensor],
+    scale: torch.Tensor,
+):
+    bs, sl, num_heads, head_dim = q.shape
+    _, _, _, kv_heads, _ = k.shape
+
+    if mask is None:
+        mask = torch.zeros(bs, sl, sl, dtype=q.dtype)
+
+    print(f"qshape {q.shape}")
+    q = q.reshape(bs, sl, kv_heads, num_heads // kv_heads, head_dim)
+    print(f"qshape {q.shape}")
+
+    return _paged_attention_kernel(
+        q=q,  # [bs, ..., sl, dim]
+        k=k,  # [bs, ..., sl, dim]
+        v=v,  # [bs, ..., sl, dim]
+        mask=mask,  # [bs, ..., sl, sl]
+        scale=scale,
+    ).flatten(1, 2)
 
 
 class PagedAttention:
@@ -253,7 +357,7 @@ class PagedAttention:
             ]
         )
 
-        flat_sharded_jage_tables = []
+        flat_sharded_page_tables = []
         for pipeline in range(self.pipeline_count):
             # TODO: Do I need to make copies here, or are views enough?
             assert (
@@ -385,12 +489,6 @@ class PagedAttention:
         key = kv_cache_gather(strided_page_table, k_strided_page_ids)
         value = kv_cache_gather(strided_page_table, v_strided_page_ids)
 
-        # Unflatten sequence length and block_seq_stride. This is again useless
-        # reshapes that the compiler will eliminate because we don't have an
-        # actual paged attention kernel yet.
-        key = key.flatten(1, 2)
-        value = value.flatten(1, 2)
-
         return key, value
 
     def write_timestep(
@@ -506,10 +604,7 @@ class PagedAttention:
         )
 
         for index, partition in enumerate(cache_partitions):
-            part_block_view = partition.unflatten(
-                1, (block_seq_len, self.block_seq_stride)
-            )
-            part_block_view = part_block_view.flatten(0, 1)
+            part_block_view = partition.flatten(0, 1)
 
             subblock_ids = (
                 (base_subblock_ids + index) if index > 0 else base_subblock_ids
@@ -541,26 +636,26 @@ class PagedAttention:
     ):
         gqa_n_rep = head_count_attn // self.head_count_kv
         assert gqa_n_rep > 0
-        if gqa_n_rep > 1:
 
-            def repeat_kv(x: torch.Tensor) -> torch.Tensor:
-                bs, slen, n_kv_heads, head_dim = x.shape
-                unsq = x.unsqueeze(-2)
-                exp = ops.expand(unsq, (bs, slen, n_kv_heads, gqa_n_rep, head_dim))
-                return exp.flatten(2, 3)
+        def repeat_kv(x: torch.Tensor) -> torch.Tensor:
+            bs, slen, n_kv_heads, head_dim = x.shape
+            unsq = x.unsqueeze(-2)
+            exp = ops.expand(unsq, (bs, slen, n_kv_heads, gqa_n_rep, head_dim))
+            return exp.flatten(2, 3)
 
-            k = repeat_kv(k)
-            v = repeat_kv(v)
-
-        # Fake quant is already dequantized when stored in the cache.
-        if cache_quantizer and not fake_quant:
-            k = cache_quantizer.dequantize_raw_tensor(k, self.attn_dtype, name="xk_deq")
-            v = cache_quantizer.dequantize_raw_tensor(v, self.attn_dtype, name="xv_deq")
-
-        q = q.transpose(1, 2)
-        k = k.transpose(1, 2)
-        v = v.transpose(1, 2)
-
+        # if gqa_n_rep > 1:
+        #     k = repeat_kv(k)
+        #     v = repeat_kv(v)
+        #
+        # # Fake quant is already dequantized when stored in the cache.
+        # if cache_quantizer and not fake_quant:
+        #     k = cache_quantizer.dequantize_raw_tensor(k, self.attn_dtype, name="xk_deq")
+        #     v = cache_quantizer.dequantize_raw_tensor(v, self.attn_dtype, name="xv_deq")
+        #
+        # q = q.transpose(1, 2)
+        # k = k.transpose(1, 2)
+        # v = v.transpose(1, 2)
+        #
         q = ops.to(q, dtype=self.attn_dtype)
         k = ops.to(k, dtype=self.attn_dtype)
         v = ops.to(v, dtype=self.attn_dtype)
@@ -624,14 +719,42 @@ class PagedAttention:
             if softcap is not None:
                 raise ValueError("softcap not supported yet")
 
-            return ops.scaled_dot_product_attention(
+            # assert mask is not None
+            assert not (cache_quantizer and not fake_quant)
+
+            res = paged_attention_kernel(
                 q=q,  # [bs, ..., sl, dim]
                 k=k,  # [bs, ..., sl, dim]
                 v=v,  # [bs, ..., sl, dim]
-                a=mask,  # [bs, ..., sl, sl]
-                is_causal=mask is None,  # assumes causal masking when true
-                scale=None,  # defaults to 1/sqrt(dim)
+                mask=mask,  # [bs, ..., sl, sl]
+                # is_causal=mask is None,  # assumes causal masking when true
+                scale=torch.tensor(
+                    [1 / math.sqrt(self.attn_head_dim)]
+                ),  # defaults to 1/sqrt(dim)
             )
+
+            print(q.shape)
+            print(k.shape)
+            print(v.shape)
+            q = q.transpose(1, 2)  # [bs, ..., sl, dim]
+            k = repeat_kv(k.flatten(1, 2)).transpose(1, 2)  # [bs, ..., sl, dim]
+            v = repeat_kv(v.flatten(1, 2)).transpose(1, 2)  # [bs, ..., sl, dim]
+            if mask is not None:
+                print(mask.shape)
+            print(q.shape)
+            print(k.shape)
+            print(v.shape)
+            # res2 = ops.scaled_dot_product_attention(
+            #     q=q,
+            #     k=k,
+            #     v=v,
+            #     a=mask,  # [bs, ..., sl, sl]
+            #     is_causal=mask is None,  # assumes causal masking when true
+            #     scale=None,  # defaults to 1/sqrt(dim)
+            # )
+            # print(res - res2)
+            # torch.testing.assert_close(res, res2)
+            return res
 
     def forward_decode(
         self,
@@ -703,6 +826,10 @@ class PagedAttention:
         mask: Optional[torch.Tensor] = None,
         probs_quantizer: Optional[StaticScaledQuantizer] = None,
     ):
+        _, block_seq_len, *_ = seq_block_ids.shape
+        k = k.unflatten(1, (block_seq_len, self.block_seq_stride))
+        v = v.unflatten(1, (block_seq_len, self.block_seq_stride))
+
         self.write(
             cache_state,
             cache_partitions=[k, v],
