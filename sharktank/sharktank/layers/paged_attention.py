@@ -154,12 +154,12 @@ def PagedAttentionKernel():
           %seq_len = tensor.dim %q, %c1 : !q
           %empty = tensor.empty(%seq_len) : !result
           %result = iree_linalg_ext.attention {indexing_maps = [
-                affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d2, d1, d7, d4)>, 
-                affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d5, d6, d1, d4)>, 
-                affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d5, d6, d1, d3)>, 
+                affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d3, d1, d2, d5)>, 
+                affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d6, d7, d1, d5)>, 
+                affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d6, d7, d1, d4)>, 
                 affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> ()>, 
-                affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d2, d5)>, 
-                affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d1, d7, d2, d3)>]}
+                affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d3, d6)>, 
+                affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d1, d2, d3, d4)>]}
             ins(%q, %k, %v, %scale_scalar, %mask : !q, !k, !v, f32, !mask) 
             outs(%empty : !result) {
           ^bb0(%score: f32):
