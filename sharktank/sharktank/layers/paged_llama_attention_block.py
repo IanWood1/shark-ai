@@ -127,6 +127,7 @@ class PagedLlamaAttentionBlock(ThetaLayer):
         xk = self.attn_k(x)
         xv = self.attn_v(x)
 
+        print(xk.shape)
         assert xq.shape[-1] == self.head_count * self.head_dim
         assert xk.shape[-1] == self.head_count_kv * self.head_dim
         assert xv.shape[-1] == self.head_count_kv * self.head_dim

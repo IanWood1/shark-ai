@@ -111,6 +111,9 @@ def PagedAttentionKernel():
     UNIT = StaticDim.SCALE
 
     SOURCE_TY = Dtype.SOURCE_TY
+
+    # TODO: scale is casted to f32 so it is used to make the output f32.
+    # Remove when specific output dtypes can be specified.
     SCALE_TY = Dtype.SCALE_TY
     MASK_TY = Dtype.MASK_TY
     RESULT_TY = SOURCE_TY
@@ -138,7 +141,7 @@ def PagedAttentionKernel():
             MLIRTensor[BATCH, SEQ_LEN, BLOCK_SEQ_LEN, BLOCK_SEQ_STRIDE, MASK_TY],
         ),
         results=(
-            MLIRTensor[BATCH, HEAD_COUNT_KV, GQA_REP, SEQ_LEN, HEAD_DIM, RESULT_TY],
+            MLIRTensor[BATCH, HEAD_COUNT_KV, GQA_REP, SEQ_LEN, HEAD_DIM, SCALE_TY],
         ),
     )
     def paged_attention_kernel(q, k, v, scale, mask, result):
@@ -209,7 +212,7 @@ def paged_attention_kernel(
         k=k,
         v=v,
         mask=mask,
-        scale=scale,
+        scale=scale.to(dtype=torch.float32),
     ).flatten(1, 2)
 
 
@@ -729,12 +732,10 @@ class PagedAttention:
             if softcap is not None:
                 raise ValueError("softcap not supported yet")
 
-            # assert mask is not None
+            # TODO
             assert not (cache_quantizer and not fake_quant)
-            # slen = q.shape[1]
-            # mask = torch.zeros(1, slen, slen, dtype=q.dtype)
 
-            res = paged_attention_kernel(
+            return paged_attention_kernel(
                 q=q,  # [bs, ..., sl, dim]
                 k=k,  # [bs, ..., sl, dim]
                 v=v,  # [bs, ..., sl, dim]
@@ -744,30 +745,6 @@ class PagedAttention:
                     [1 / math.sqrt(self.attn_head_dim)]
                 ),  # defaults to 1/sqrt(dim)
             )
-
-            print(q.shape)
-            print(k.shape)
-            print(v.shape)
-            q = q.transpose(1, 2)  # [bs, ..., sl, dim]
-            k = repeat_kv(k.flatten(1, 2)).transpose(1, 2)  # [bs, ..., sl, dim]
-            v = repeat_kv(v.flatten(1, 2)).transpose(1, 2)  # [bs, ..., sl, dim]
-            if mask is not None:
-                print(mask.shape)
-            print(q.shape)
-            print(k.shape)
-            print(v.shape)
-            res2 = ops.scaled_dot_product_attention(
-                q=q,
-                k=k,
-                v=v,
-                a=mask,  # [bs, ..., sl, sl]
-                is_causal=mask is None,  # assumes causal masking when true
-                scale=None,  # defaults to 1/sqrt(dim)
-            )
-            # print(res)
-            print(res - res2)
-            # torch.testing.assert_close(res, res2)
-            return res
 
     def forward_decode(
         self,

@@ -33,14 +33,21 @@ class AttentionBlockTest(unittest.TestCase):
         head_dim = 100
         hidden_size = 3200
         ffn_dim = 8640
-        head_count_kv = 32
+        head_count_kv = 16
         block_seq_stride = 1
         rms_epsilon = 0.01
         rope_dimension_count = 100
         rope_freq_base = 10000.0
         max_seq_len = 2048
-        attention_block_theta = make_attention_block_theta(
-            feature_dim=head_count * head_dim, ffn_dim=ffn_dim, dtype=torch.float32
+
+        attention_block_theta = make_attention_block_ffn_theta_v2(
+            block_idx=block_index,
+            head_count=head_count,
+            head_count_kv=head_count_kv,
+            head_dim=head_dim,
+            embedding_length=head_count * head_dim,
+            feed_forward_length=ffn_dim,
+            dtype=torch.float32,
         )
 
         hp = LlamaHParams(
@@ -65,7 +72,7 @@ class AttentionBlockTest(unittest.TestCase):
 
         paged_kv_cache = PagedAttention(
             transformer_block_count=head_count,
-            attn_head_count=head_count,
+            attn_head_count=head_count_kv,
             attn_head_dim=head_dim,
             cache_partition_count=2,  # One for each of K/V.
             block_seq_stride=block_seq_stride,
