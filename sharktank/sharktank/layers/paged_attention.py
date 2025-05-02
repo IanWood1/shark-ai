@@ -112,6 +112,7 @@ def PagedAttentionKernel():
 
     SOURCE_TY = Dtype.SOURCE_TY
     SCALE_TY = Dtype.SCALE_TY
+    MASK_TY = Dtype.MASK_TY
     RESULT_TY = SOURCE_TY
 
     @mlir_kernel(
@@ -134,7 +135,7 @@ def PagedAttentionKernel():
                 SOURCE_TY,
             ],
             MLIRTensor[UNIT, SCALE_TY],
-            MLIRTensor[BATCH, SEQ_LEN, BLOCK_SEQ_LEN, SOURCE_TY],
+            MLIRTensor[BATCH, SEQ_LEN, BLOCK_SEQ_LEN, BLOCK_SEQ_STRIDE, MASK_TY],
         ),
         results=(
             MLIRTensor[BATCH, HEAD_COUNT_KV, GQA_REP, SEQ_LEN, HEAD_DIM, RESULT_TY],
@@ -158,7 +159,7 @@ def PagedAttentionKernel():
                 affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d6, d7, d1, d5)>, 
                 affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d6, d7, d1, d4)>, 
                 affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> ()>, 
-                affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d3, d6)>, 
+                affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d3, d6, d7)>, 
                 affine_map<(d0, d1, d2, d3, d4, d5, d6, d7) -> (d0, d1, d2, d3, d4)>]}
             ins(%q, %k, %v, %scale_scalar, %mask : !q, !k, !v, f32, !mask) 
             outs(%empty : !result) {
@@ -185,20 +186,29 @@ def paged_attention_kernel(
     scale: torch.Tensor,
 ):
     bs, sl, num_heads, head_dim = q.shape
-    _, _, _, kv_heads, _ = k.shape
+    _, block_seq_len, block_seq_stride, kv_heads, _ = k.shape
 
     if mask is None:
-        mask = torch.zeros(bs, sl, sl, dtype=q.dtype)
+        mask = torch.full(
+            (sl, block_seq_len * block_seq_stride), float("-inf"), dtype=q.dtype
+        )
+        mask = torch.triu(mask, diagonal=1)
+    mask = mask[None, :, :]
+    # mask = ops.expand(mask, (bs, sl, block_seq_len * block_seq_stride))
+    mask = mask.reshape(bs, sl, block_seq_len, block_seq_stride)
+    print(q.dtype)
+    print(mask.shape)
+    print(mask)
 
     print(f"qshape {q.shape}")
     q = q.reshape(bs, sl, kv_heads, num_heads // kv_heads, head_dim)
     print(f"qshape {q.shape}")
 
     return _paged_attention_kernel(
-        q=q,  # [bs, ..., sl, dim]
-        k=k,  # [bs, ..., sl, dim]
-        v=v,  # [bs, ..., sl, dim]
-        mask=mask,  # [bs, ..., sl, sl]
+        q=q,
+        k=k,
+        v=v,
+        mask=mask,
         scale=scale,
     ).flatten(1, 2)
 
@@ -721,6 +731,8 @@ class PagedAttention:
 
             # assert mask is not None
             assert not (cache_quantizer and not fake_quant)
+            # slen = q.shape[1]
+            # mask = torch.zeros(1, slen, slen, dtype=q.dtype)
 
             res = paged_attention_kernel(
                 q=q,  # [bs, ..., sl, dim]
@@ -744,15 +756,16 @@ class PagedAttention:
             print(q.shape)
             print(k.shape)
             print(v.shape)
-            # res2 = ops.scaled_dot_product_attention(
-            #     q=q,
-            #     k=k,
-            #     v=v,
-            #     a=mask,  # [bs, ..., sl, sl]
-            #     is_causal=mask is None,  # assumes causal masking when true
-            #     scale=None,  # defaults to 1/sqrt(dim)
-            # )
-            # print(res - res2)
+            res2 = ops.scaled_dot_product_attention(
+                q=q,
+                k=k,
+                v=v,
+                a=mask,  # [bs, ..., sl, sl]
+                is_causal=mask is None,  # assumes causal masking when true
+                scale=None,  # defaults to 1/sqrt(dim)
+            )
+            # print(res)
+            print(res - res2)
             # torch.testing.assert_close(res, res2)
             return res
 

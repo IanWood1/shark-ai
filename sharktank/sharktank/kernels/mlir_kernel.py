@@ -233,6 +233,7 @@ def mlir_kernel(
                         .from_string(mlir)
                         .render({"kernel_name": kernel_name, **mlir_spec.subs})
                     )
+                    print(asm)
                     try:
                         module_op = Operation.parse(asm, context=kb.context)
                     except MLIRError as e:
