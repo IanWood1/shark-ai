@@ -11,7 +11,7 @@ tightly coupled transformer blocks a bit less "stringy" with loose tensors
 and dims floating around everywhere.
 """
 
-from typing import Optional, Tuple, Union, List
+from typing import Optional, Tuple, Union, List, cast
 from sharktank.kernels.mlir_kernel import *
 import abc
 import math
@@ -64,7 +64,7 @@ def KVCacheGatherKernel():
         # iree_linalg_ext.gather, we should be generating that instead.
         mlir = """
         module {
-        util.func @{{kernel_name}}(%source: !source, %indices: !indices) -> !result {
+        util.func private @{{kernel_name}}(%source: !source, %indices: !indices) -> !result {
           %c0 = arith.constant 0 : index
           %c1 = arith.constant 1 : index
           %batches = tensor.dim %indices, %c0 : !indices
@@ -149,7 +149,7 @@ def PagedAttentionKernel():
         # iree_linalg_ext.gather, we should be generating that instead.
         mlir = """
         module {
-        util.func @{{kernel_name}}(
+        util.func private @{{kernel_name}}(
             %q: !q, %k: !k, %v : !v, %scale : !scale, %mask : !mask
         ) -> !result {
           %c0 = arith.constant 0 : index
@@ -196,16 +196,12 @@ def paged_attention_kernel(
             (sl, block_seq_len * block_seq_stride), float("-inf"), dtype=q.dtype
         )
         mask = torch.triu(mask, diagonal=1)
-    mask = mask[None, :, :]
-    # mask = ops.expand(mask, (bs, sl, block_seq_len * block_seq_stride))
+        mask = mask[None, :, :]
+        mask = cast(
+            torch.Tensor, ops.expand(mask, (bs, sl, block_seq_len * block_seq_stride))
+        )
     mask = mask.reshape(bs, sl, block_seq_len, block_seq_stride)
-    print(q.dtype)
-    print(mask.shape)
-    print(mask)
-
-    print(f"qshape {q.shape}")
     q = q.reshape(bs, sl, kv_heads, num_heads // kv_heads, head_dim)
-    print(f"qshape {q.shape}")
 
     return _paged_attention_kernel(
         q=q,
