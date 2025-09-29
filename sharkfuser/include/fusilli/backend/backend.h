@@ -68,6 +68,10 @@ static const std::unordered_map<Backend, std::vector<std::string>>
                 "--iree-hal-target-backends=rocm",
                 "--iree-hip-target=gfx942",
                 "--iree-opt-level=O3",
+                "--iree-preprocessing-pass-pipeline='builtin.module(util.func("
+                "iree-preprocessing-sink-transpose-through-pad))'",
+                "--iree-dispatch-creation-enable-fuse-padding-into-linalg-"
+                "consumer-ops",
             },
         },
 };
