@@ -32,6 +32,7 @@
 #include "fusilli/attributes/types.h"
 #include "fusilli/graph/graph.h"
 #include "fusilli/node/conv_node.h"
+#include "fusilli/node/pointwise_node.h"
 #include "fusilli/support/extras.h"
 
 #include <algorithm>
@@ -571,6 +572,106 @@ inline std::string ConvFPropNode::emitNodePreAsm() const {
   );
 
   return output;
+}
+
+//===----------------------------------------------------------------------===//
+//
+// PointwiseNode ASM Emitter Methods
+//
+//===----------------------------------------------------------------------===//
+
+// Emits PointwiseNode's operand names in MLIR assembly format.
+//
+// For RELU mode: single input operand
+// For BIAS mode: two input operands (input and bias)
+inline std::string PointwiseNode::getOperandNamesAsm() const {
+  switch (pointwiseAttr.getMode()) {
+  case PointwiseAttr::Mode::RELU:
+    return pointwiseAttr.getIN0()->getValueNameAsm();
+  case PointwiseAttr::Mode::BIAS:
+    return pointwiseAttr.getIN0()->getValueNameAsm() + ", " +
+           pointwiseAttr.getIN1()->getValueNameAsm();
+  default:
+    assert(false && "Unsupported pointwise mode");
+    return "";
+  }
+}
+
+// Emits PointwiseNode's operand types in MLIR assembly format.
+//
+// For RELU mode: single input type
+// For BIAS mode: two input types (input and bias)
+inline std::string PointwiseNode::getOperandTypesAsm() const {
+  switch (pointwiseAttr.getMode()) {
+  case PointwiseAttr::Mode::RELU:
+    return pointwiseAttr.getIN0()->getTensorTypeAsm(/*isValueTensor=*/true,
+                                                    /*useLogicalDims=*/true);
+  case PointwiseAttr::Mode::BIAS:
+    return pointwiseAttr.getIN0()->getTensorTypeAsm(/*isValueTensor=*/true,
+                                                    /*useLogicalDims=*/true) +
+           ", " +
+           pointwiseAttr.getIN1()->getTensorTypeAsm(/*isValueTensor=*/true,
+                                                    /*useLogicalDims=*/true);
+  default:
+    assert(false && "Unsupported pointwise mode");
+    return "";
+  }
+}
+
+// Emits PointwiseNode's result names in MLIR assembly format.
+inline std::string PointwiseNode::getResultNamesAsm() const {
+  return pointwiseAttr.getOUT()->getValueNameAsm();
+}
+
+// Emits PointwiseNode's result types in MLIR assembly format.
+inline std::string PointwiseNode::getResultTypesAsm() const {
+  return pointwiseAttr.getOUT()->getTensorTypeAsm(/*isValueTensor=*/true,
+                                                  /*useLogicalDims=*/true);
+}
+
+// Emits PointwiseNode's result names and types in MLIR assembly format.
+inline std::string PointwiseNode::getResultNamesAndTypesAsm() const {
+  return getResultNamesAsm() + ": " + getResultTypesAsm();
+}
+
+// This gets called by the recursive `emitAsmSubtree()` method to emit
+// the pre-assembly for each node. The schema hard-codes things that are not
+// customizable, and leaves the rest for template replacements using
+// `std::format`.
+inline std::string PointwiseNode::emitNodePreAsm() const {
+  switch (pointwiseAttr.getMode()) {
+  case PointwiseAttr::Mode::RELU: {
+    constexpr std::string_view schema = R"(
+    {0} = torch.aten.relu {1} : {2} -> {3}
+    )";
+
+    std::string output = std::format(schema,
+                                     getResultNamesAsm(),  // {0}
+                                     getOperandNamesAsm(), // {1}
+                                     getOperandTypesAsm(), // {2}
+                                     getResultTypesAsm()   // {3}
+    );
+    return output;
+  }
+  case PointwiseAttr::Mode::BIAS: {
+    constexpr std::string_view schema = R"(
+    %alpha_{0} = torch.constant.int 1
+    {1} = torch.aten.add.Tensor {2}, %alpha_{0} : {3}, !torch.int -> {4}
+    )";
+    std::string uniqueSSASuffix = getName();
+
+    std::string output = std::format(schema, uniqueSSASuffix, // {0}
+                                     getResultNamesAsm(),     // {1}
+                                     getOperandNamesAsm(),    // {2}
+                                     getOperandTypesAsm(),    // {3}
+                                     getResultTypesAsm()      // {4}
+    );
+    return output;
+  }
+  default:
+    assert(false && "Unsupported pointwise mode");
+    return "";
+  }
 }
 
 } // namespace fusilli
