@@ -120,6 +120,28 @@ private:
     return setOutput(KTYPE::NAME, tensor);                                     \
   }
 
+#define FUSILLI_DEF_ATTR_ACCESSORS(TYPE, NAME, MEMBER)                         \
+  TYPE &set##NAME(const decltype(TYPE::MEMBER) &val) {                         \
+    MEMBER = val;                                                              \
+    return *this;                                                              \
+  }                                                                            \
+  decltype(auto) get##NAME() const { return (MEMBER); }
+
+#define FUSILLI_DEF_VECTOR_ATTR_ACCESSORS(TYPE, NAME, MEMBER)                  \
+  TYPE &set##NAME(const decltype(TYPE::MEMBER) &val) {                         \
+    MEMBER = val;                                                              \
+    return *this;                                                              \
+  }                                                                            \
+  template <typename R>                                                        \
+    requires(std::ranges::forward_range<R> &&                                  \
+             std::is_same_v<std::ranges::range_value_t<R>,                     \
+                            decltype(TYPE::MEMBER)::value_type>)               \
+  TYPE &set##NAME(R &&val) {                                                   \
+    MEMBER.assign(val.begin(), val.end());                                     \
+    return *this;                                                              \
+  }                                                                            \
+  decltype(auto) get##NAME() const { return (MEMBER); }
+
 } // namespace fusilli
 
 #endif // FUSILLI_ATTRIBUTES_ATTRIBUTES_H
