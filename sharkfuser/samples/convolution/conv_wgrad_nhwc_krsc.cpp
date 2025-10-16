@@ -24,7 +24,7 @@ TEST_CASE("Convolution wgrad; DY/X (NHWC), DW (KRSC); 1x1; no padding",
   auto build_new_graph = [=](const Handle &handle) {
     auto graph = std::make_shared<Graph>();
     graph->setName("conv_wgrad_sample_nhwc_krsc_1x1_nopad");
-    graph->setIODataType(DataType::Float).setComputeDataType(DataType::Float);
+    graph->setIODataType(DataType::Half).setComputeDataType(DataType::Float);
 
     auto DY = graph->tensor(TensorAttr()
                                 .setName("dy")
@@ -44,7 +44,7 @@ TEST_CASE("Convolution wgrad; DY/X (NHWC), DW (KRSC); 1x1; no padding",
 
     auto DW = graph->convWGrad(DY, X, wgradAttr);
     DW->setName("dw")
-        .setDataType(DataType::Float)
+        .setDataType(DataType::Half)
         .setOutput(true)
         .setDim({k, c, r, s});
 
@@ -52,7 +52,7 @@ TEST_CASE("Convolution wgrad; DY/X (NHWC), DW (KRSC); 1x1; no padding",
     REQUIRE(isOk(graph->validate()));
 
     // Compile
-    REQUIRE(isOk(graph->compile(handle, /*remove=*/true)));
+    REQUIRE(isOk(graph->compile(handle, /*remove=*/false)));
 
     return std::make_tuple(graph, DY, X, DW);
   };
@@ -75,22 +75,22 @@ TEST_CASE("Convolution wgrad; DY/X (NHWC), DW (KRSC); 1x1; no padding",
 
   // Allocate input buffers.
   // Use values of 1.0 so the resulting DW for 1x1 conv equals N*H*W.
-  const float inputScalar = 1.0f;
+  const half inputScalar = 1.0f;
   auto dyBuf = std::make_shared<Buffer>(FUSILLI_REQUIRE_UNWRAP(Buffer::allocate(
       handle,
       /*shape=*/castToSizeT(DY->getPhysicalDim()),
-      /*data=*/std::vector<float>(DY->getVolume(), inputScalar))));
+      /*data=*/std::vector<half>(DY->getVolume(), inputScalar))));
 
   auto xBuf = std::make_shared<Buffer>(FUSILLI_REQUIRE_UNWRAP(Buffer::allocate(
       handle,
       /*shape=*/castToSizeT(X->getPhysicalDim()),
-      /*data=*/std::vector<float>(X->getVolume(), inputScalar))));
+      /*data=*/std::vector<half>(X->getVolume(), inputScalar))));
 
   // Allocate output buffer (initialized to zeros).
   auto dwBuf = std::make_shared<Buffer>(FUSILLI_REQUIRE_UNWRAP(
       Buffer::allocate(handle,
                        /*shape=*/castToSizeT(DW->getPhysicalDim()),
-                       /*data=*/std::vector<float>(DW->getVolume(), 0.0f))));
+                       /*data=*/std::vector<half>(DW->getVolume(), 0.0f))));
 
   // Create variant pack.
   const std::unordered_map<std::shared_ptr<TensorAttr>, std::shared_ptr<Buffer>>
@@ -104,11 +104,11 @@ TEST_CASE("Convolution wgrad; DY/X (NHWC), DW (KRSC); 1x1; no padding",
   REQUIRE(isOk(graph->execute(variantPack)));
 
   // Read output buffer and validate values for 1x1, stride=1, no padding.
-  std::vector<float> dwVals;
+  std::vector<half> dwVals;
   REQUIRE(isOk(dwBuf->read(handle, dwVals)));
 
-  const float expected =
-      static_cast<float>(n * h * w) * inputScalar * inputScalar;
+  const half expected =
+      static_cast<half>(n * h * w) * inputScalar * inputScalar;
   for (auto val : dwVals)
     REQUIRE(val == expected);
 
