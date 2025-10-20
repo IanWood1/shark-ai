@@ -26,63 +26,179 @@ const auto PositiveInteger =
     CLI::Range(int64_t{1}, std::numeric_limits<int64_t>::max());
 const auto ValidConvLayout = CLI::IsMember({"NCHW", "NHWC", "NCDHW", "NDHWC"});
 
-ErrorObject benchmark_conv_fprop(int64_t n, int64_t c, int64_t d, int64_t h,
-                                 int64_t w, int64_t k, int64_t z, int64_t y,
-                                 int64_t x, int64_t t, int64_t u, int64_t v,
-                                 int64_t o, int64_t p, int64_t q, int64_t m,
-                                 int64_t l, int64_t j, std::string_view I,
-                                 std::string_view O, std::string_view F,
-                                 int64_t S, bool bias, int64_t iter,
-                                 DataType convIOType) {
+enum class ConvMode {
+  FWD = 1,
+  DGRAD = 2,
+  WGRAD = 4,
+};
+
+struct ConvBenchmarkParams {
+  // Input tensor dimensions
+  int64_t batch_size;
+  int64_t in_channels;
+  int64_t in_depth;
+  int64_t in_height;
+  int64_t in_width;
+
+  // Filter dimensions
+  int64_t out_channels;
+  int64_t fil_depth;
+  int64_t fil_height;
+  int64_t fil_width;
+
+  // Convolution parameters
+  int64_t stride_depth;
+  int64_t stride_height;
+  int64_t stride_width;
+  int64_t pad_depth;
+  int64_t pad_height;
+  int64_t pad_width;
+  int64_t dilation_depth;
+  int64_t dilation_height;
+  int64_t dilation_width;
+
+  // Layout and configuration
+  std::string input_layout;
+  std::string output_layout;
+  std::string filter_layout;
+  int64_t spatial_dims;
+  bool use_bias;
+  int64_t iterations;
+  DataType io_type;
+
+  // Methods to calculate dimensions and strides
+  std::vector<int64_t> getInputDims() const {
+    return (spatial_dims == 2)
+               ? std::vector<int64_t>{batch_size, in_channels, in_height,
+                                      in_width}
+               : std::vector<int64_t>{batch_size, in_channels, in_depth,
+                                      in_height, in_width};
+  }
+
+  std::vector<int64_t> getFilterDims() const {
+    return (spatial_dims == 2)
+               ? std::vector<int64_t>{out_channels, in_channels, fil_height,
+                                      fil_width}
+               : std::vector<int64_t>{out_channels, in_channels, fil_depth,
+                                      fil_height, fil_width};
+  }
+
+  std::vector<int64_t> getInputStride() const {
+    if (spatial_dims == 2) {
+      return (input_layout == "NCHW")
+                 ? std::vector<int64_t>{in_channels * in_height * in_width,
+                                        in_height * in_width, in_width, 1}
+                 : std::vector<int64_t>{in_channels * in_height * in_width, 1,
+                                        in_channels * in_width, in_channels};
+    } else {
+      return (input_layout == "NCDHW")
+                 ? std::vector<int64_t>{in_channels * in_depth * in_height *
+                                            in_width,
+                                        in_depth * in_height * in_width,
+                                        in_height * in_width, in_width, 1}
+                 : std::vector<int64_t>{in_channels * in_depth * in_height *
+                                            in_width,
+                                        1, in_channels * in_height * in_width,
+                                        in_width * in_channels, in_channels};
+    }
+  }
+
+  std::vector<int64_t> getFilterStride() const {
+    if (spatial_dims == 2) {
+      return (filter_layout == "NCHW")
+                 ? std::vector<int64_t>{in_channels * fil_height * fil_width,
+                                        fil_height * fil_width, fil_width, 1}
+                 : std::vector<int64_t>{in_channels * fil_height * fil_width, 1,
+                                        fil_width * in_channels, in_channels};
+    } else {
+      return (filter_layout == "NCDHW")
+                 ? std::vector<int64_t>{in_channels * fil_depth * fil_height *
+                                            fil_width,
+                                        fil_depth * fil_height * fil_width,
+                                        fil_height * fil_width, fil_width, 1}
+                 : std::vector<int64_t>{in_channels * fil_depth * fil_height *
+                                            fil_width,
+                                        1, fil_height * fil_width * in_channels,
+                                        fil_width * in_channels, in_channels};
+    }
+  }
+
+  std::vector<int64_t> getConvStride() const {
+    return (spatial_dims == 2)
+               ? std::vector<int64_t>{stride_height, stride_width}
+               : std::vector<int64_t>{stride_depth, stride_height,
+                                      stride_width};
+  }
+
+  std::vector<int64_t> getConvPadding() const {
+    return (spatial_dims == 2)
+               ? std::vector<int64_t>{pad_height, pad_width}
+               : std::vector<int64_t>{pad_depth, pad_height, pad_width};
+  }
+
+  std::vector<int64_t> getConvDilation() const {
+    return (spatial_dims == 2)
+               ? std::vector<int64_t>{dilation_height, dilation_width}
+               : std::vector<int64_t>{dilation_depth, dilation_height,
+                                      dilation_width};
+  }
+
+  std::vector<int64_t> getBiasDims() const {
+    return (spatial_dims == 2) ? std::vector<int64_t>{1, out_channels, 1, 1}
+                               : std::vector<int64_t>{1, out_channels, 1, 1, 1};
+  }
+
+  std::vector<int64_t> getBiasStride() const {
+    if (spatial_dims == 2) {
+      return (input_layout == "NCHW")
+                 ? std::vector<int64_t>{out_channels, 1, 1, 1}
+                 : std::vector<int64_t>{out_channels, 1, out_channels,
+                                        out_channels};
+    } else {
+      return (input_layout == "NCDHW")
+                 ? std::vector<int64_t>{out_channels, 1, 1, 1, 1}
+                 : std::vector<int64_t>{out_channels, 1, out_channels,
+                                        out_channels, out_channels};
+    }
+  }
+
+  std::string getGraphName(const std::string &name) const {
+    return std::format("{}_n{}_c{}_d{}_h{}_w{}_k{}_z{}_y{}_x{"
+                       "}_t{}_u{}_v{}_o{}"
+                       "_p{}_q{}_m{}_l{}_j{}_S{}_I{}_O{}_F{}_bias{}",
+                       name, batch_size, in_channels, in_depth, in_height,
+                       in_width, out_channels, fil_depth, fil_height, fil_width,
+                       stride_depth, stride_height, stride_width, pad_depth,
+                       pad_height, pad_width, dilation_depth, dilation_height,
+                       dilation_width, spatial_dims, input_layout,
+                       output_layout, filter_layout, use_bias);
+  }
+};
+
+ErrorObject benchmark_conv_fprop(const ConvBenchmarkParams &params) {
 #ifdef FUSILLI_ENABLE_AMDGPU
   Handle handle = FUSILLI_TRY(Handle::create(Backend::AMDGPU));
 #else
   Handle handle = FUSILLI_TRY(Handle::create(Backend::CPU));
 #endif
 
-  // Build attributes based on 2D/3D conv and layouts.
-  auto xDims = (S == 2) ? std::vector<int64_t>{n, c, h, w}
-                        : std::vector<int64_t>{n, c, d, h, w};
-  auto wDims = (S == 2) ? std::vector<int64_t>{k, c, y, x}
-                        : std::vector<int64_t>{k, c, z, y, x};
-  auto xStride =
-      (S == 2)
-          ? (I == "NCHW" ? std::vector<int64_t>{c * h * w, h * w, w, 1}
-                         : std::vector<int64_t>{c * h * w, 1, c * w, c})
-          : (I == "NCDHW"
-                 ? std::vector<int64_t>{c * d * h * w, d * h * w, h * w, w, 1}
-                 : std::vector<int64_t>{c * d * h * w, 1, c * h * w, w * c, c});
-  auto wStride =
-      (S == 2)
-          ? (F == "NCHW" ? std::vector<int64_t>{c * y * x, y * x, x, 1}
-                         : std::vector<int64_t>{c * y * x, 1, x * c, c})
-          : (F == "NCDHW"
-                 ? std::vector<int64_t>{c * z * y * x, z * y * x, y * x, x, 1}
-                 : std::vector<int64_t>{c * z * y * x, 1, y * x * c, x * c, c});
-  auto convStride =
-      (S == 2) ? std::vector<int64_t>{u, v} : std::vector<int64_t>{t, u, v};
-  auto convPadding =
-      (S == 2) ? std::vector<int64_t>{p, q} : std::vector<int64_t>{o, p, q};
-  auto convDilation =
-      (S == 2) ? std::vector<int64_t>{l, j} : std::vector<int64_t>{m, l, j};
-  auto biasDims = (S == 2) ? std::vector<int64_t>{1, k, 1, 1}
-                           : std::vector<int64_t>{1, k, 1, 1, 1};
-  auto biasStride = (S == 2)
-                        ? (I == "NCHW" ? std::vector<int64_t>{k, 1, 1, 1}
-                                       : std::vector<int64_t>{k, 1, k, k})
-                        : (I == "NCDHW" ? std::vector<int64_t>{k, 1, 1, 1, 1}
-                                        : std::vector<int64_t>{k, 1, k, k, k});
+  // Build attributes based on 2D/3D conv and layouts using struct methods.
+  auto xDims = params.getInputDims();
+  auto wDims = params.getFilterDims();
+  auto xStride = params.getInputStride();
+  auto wStride = params.getFilterStride();
+  auto convStride = params.getConvStride();
+  auto convPadding = params.getConvPadding();
+  auto convDilation = params.getConvDilation();
+  auto biasDims = params.getBiasDims();
+  auto biasStride = params.getBiasStride();
 
   // Build graph for the given handle (device), validate and compile it.
   auto graph = std::make_shared<Graph>();
 
   // Set unique name to prevent concurrent invocations of the benchmark driver
   // from polluting the same cache files leading to race conditions.
-  auto graphName = std::format(
-      "benchmark_conv_fprop_n{}_c{}_d{}_h{}_w{}_k{}_z{}_y{}_x{}_t{}_u{}_v{}_o{}"
-      "_p{}_q{}_m{}_l{}_j{}_S{}_I{}_O{}_F{}_bias{}",
-      n, c, d, h, w, k, z, y, x, t, u, v, o, p, q, m, l, j, S, I, O, F, bias);
-  graph->setName(graphName);
+  graph->setName(params.getGraphName("benchmark_conv_fprop"));
 
   // Types on the graph are kept at fp32 but we explicitly set
   // individual tensor types below based on configuration. These
@@ -96,13 +212,13 @@ ErrorObject benchmark_conv_fprop(int64_t n, int64_t c, int64_t d, int64_t h,
                              .setName("input")
                              .setDim(xDims)
                              .setStride(xStride)
-                             .setDataType(convIOType));
+                             .setDataType(params.io_type));
 
   auto W = graph->tensor(TensorAttr()
                              .setName("filter")
                              .setDim(wDims)
                              .setStride(wStride)
-                             .setDataType(convIOType));
+                             .setDataType(params.io_type));
 
   auto conv_attr = ConvFPropAttr()
                        .setStride(convStride)
@@ -111,20 +227,20 @@ ErrorObject benchmark_conv_fprop(int64_t n, int64_t c, int64_t d, int64_t h,
                        .setName("conv_fprop");
 
   auto Y = graph->convFProp(X, W, conv_attr);
-  Y->setDataType(convIOType);
+  Y->setDataType(params.io_type);
 
   std::shared_ptr<TensorAttr> B;
-  if (bias) {
+  if (params.use_bias) {
     B = graph->tensor(TensorAttr()
                           .setName("bias")
                           .setDim(biasDims)
                           .setStride(biasStride)
-                          .setDataType(convIOType));
+                          .setDataType(params.io_type));
     auto biasAttr = PointwiseAttr().setMode(PointwiseAttr::Mode::ADD);
     Y = graph->pointwise(Y, B, biasAttr);
-    Y->setDataType(convIOType);
+    Y->setDataType(params.io_type);
   }
-  Y->setOutput(true).setDataType(convIOType);
+  Y->setOutput(true).setDataType(params.io_type);
 
   // Validate, infer missing properties
   FUSILLI_CHECK_ERROR(graph->validate());
@@ -133,9 +249,12 @@ ErrorObject benchmark_conv_fprop(int64_t n, int64_t c, int64_t d, int64_t h,
   FUSILLI_CHECK_ERROR(graph->compile(handle, /*remove=*/true));
 
   // Allocate input, weight and output buffers.
-  auto xBuf = FUSILLI_TRY(allocateBufferOfType(handle, X, convIOType, 1.0f));
-  auto wBuf = FUSILLI_TRY(allocateBufferOfType(handle, W, convIOType, 1.0f));
-  auto yBuf = FUSILLI_TRY(allocateBufferOfType(handle, Y, convIOType, 0.0f));
+  auto xBuf =
+      FUSILLI_TRY(allocateBufferOfType(handle, X, params.io_type, 1.0f));
+  auto wBuf =
+      FUSILLI_TRY(allocateBufferOfType(handle, W, params.io_type, 1.0f));
+  auto yBuf =
+      FUSILLI_TRY(allocateBufferOfType(handle, Y, params.io_type, 0.0f));
 
   // Create variant pack.
   std::unordered_map<std::shared_ptr<TensorAttr>, std::shared_ptr<Buffer>>
@@ -145,13 +264,14 @@ ErrorObject benchmark_conv_fprop(int64_t n, int64_t c, int64_t d, int64_t h,
           {Y, yBuf},
       };
 
-  if (bias) {
-    auto bBuf = FUSILLI_TRY(allocateBufferOfType(handle, B, convIOType, 1.0f));
+  if (params.use_bias) {
+    auto bBuf =
+        FUSILLI_TRY(allocateBufferOfType(handle, B, params.io_type, 1.0f));
     variantPack.insert({B, bBuf});
   }
 
   // Execute graph a few times.
-  for (size_t i = 0; i < iter; i++)
+  for (size_t i = 0; i < params.iterations; i++)
     FUSILLI_CHECK_ERROR(graph->execute(variantPack));
 
   return ok();
@@ -174,6 +294,7 @@ int main(int argc, char **argv) {
   // CLI Options:
   int64_t n, c, d, h, w, k, z, y, x, t, u, v, o, p, q, m, l, j, S;
   std::string I, F, O;
+  ConvMode mode;
   convApp->add_option("--batchsize,-n", n, "Input batch size")
       ->required()
       ->check(PositiveInteger);
@@ -242,6 +363,11 @@ int main(int argc, char **argv) {
                    "Number of spatial dimensions (2 for conv2d, 3 for conv3d)")
       ->required()
       ->check(CLI::IsMember({2, 3}));
+  convApp
+      ->add_option("--conv_mode", mode,
+                   "Conv mode (1 = FWD, 2 = DGRAD, 4 = WGRAD)")
+      ->default_val(ConvMode::FWD)
+      ->check(CLI::IsMember({ConvMode::FWD, ConvMode::WGRAD, ConvMode::DGRAD}));
 
   // CLI Flags:
   bool fp16{false}, bf16{false}, bias{false};
@@ -292,9 +418,33 @@ int main(int argc, char **argv) {
       // When unspecified, default to fp32 conv.
       convIOType = DataType::Float;
 
-    auto status =
-        benchmark_conv_fprop(n, c, d, h, w, k, z, y, x, t, u, v, o, p, q, m, l,
-                             j, I, O, F, S, bias, iter, convIOType);
+    ConvBenchmarkParams params{.batch_size = n,
+                               .in_channels = c,
+                               .in_depth = d,
+                               .in_height = h,
+                               .in_width = w,
+                               .out_channels = k,
+                               .fil_depth = z,
+                               .fil_height = y,
+                               .fil_width = x,
+                               .stride_depth = t,
+                               .stride_height = u,
+                               .stride_width = v,
+                               .pad_depth = o,
+                               .pad_height = p,
+                               .pad_width = q,
+                               .dilation_depth = m,
+                               .dilation_height = l,
+                               .dilation_width = j,
+                               .input_layout = I,
+                               .output_layout = O,
+                               .filter_layout = F,
+                               .spatial_dims = S,
+                               .use_bias = bias,
+                               .iterations = iter,
+                               .io_type = convIOType};
+
+    auto status = benchmark_conv_fprop(params);
     if (isError(status)) {
       std::cerr << "Fusilli Benchmark failed: " << status << std::endl;
       return 1;
