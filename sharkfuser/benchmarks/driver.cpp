@@ -13,7 +13,6 @@
 #include <format>
 #include <limits>
 #include <memory>
-#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -83,6 +82,35 @@ struct ConvBenchmarkParams {
                                       fil_height, fil_width};
   }
 
+  std::vector<int64_t> getOutputDims() const {
+    if (spatial_dims == 2) {
+      int64_t out_h = (in_height + 2 * pad_height -
+                       dilation_height * (fil_height - 1) - 1) /
+                          stride_height +
+                      1;
+      int64_t out_w =
+          (in_width + 2 * pad_width - dilation_width * (fil_width - 1) - 1) /
+              stride_width +
+          1;
+      return std::vector<int64_t>{batch_size, out_channels, out_h, out_w};
+    } else {
+      int64_t out_d =
+          (in_depth + 2 * pad_depth - dilation_depth * (fil_depth - 1) - 1) /
+              stride_depth +
+          1;
+      int64_t out_h = (in_height + 2 * pad_height -
+                       dilation_height * (fil_height - 1) - 1) /
+                          stride_height +
+                      1;
+      int64_t out_w =
+          (in_width + 2 * pad_width - dilation_width * (fil_width - 1) - 1) /
+              stride_width +
+          1;
+      return std::vector<int64_t>{batch_size, out_channels, out_d, out_h,
+                                  out_w};
+    }
+  }
+
   std::vector<int64_t> getInputStride() const {
     if (spatial_dims == 2) {
       return (input_layout == "NCHW")
@@ -120,6 +148,28 @@ struct ConvBenchmarkParams {
                                             fil_width,
                                         1, fil_height * fil_width * in_channels,
                                         fil_width * in_channels, in_channels};
+    }
+  }
+
+  std::vector<int64_t> getOutputStride() const {
+    auto outDims = getOutputDims();
+    if (spatial_dims == 2) {
+      return (output_layout == "NCHW")
+                 ? std::vector<int64_t>{out_channels * outDims[2] * outDims[3],
+                                        outDims[2] * outDims[3], outDims[3], 1}
+                 : std::vector<int64_t>{out_channels * outDims[2] * outDims[3],
+                                        1, out_channels * outDims[3],
+                                        out_channels};
+    } else {
+      return (output_layout == "NCDHW")
+                 ? std::vector<int64_t>{out_channels * outDims[2] * outDims[3] *
+                                            outDims[4],
+                                        outDims[2] * outDims[3] * outDims[4],
+                                        outDims[3] * outDims[4], outDims[4], 1}
+                 : std::vector<int64_t>{
+                       out_channels * outDims[2] * outDims[3] * outDims[4], 1,
+                       out_channels * outDims[3] * outDims[4],
+                       out_channels * outDims[4], out_channels};
     }
   }
 
@@ -269,6 +319,98 @@ ErrorObject benchmark_conv_fprop(const ConvBenchmarkParams &params) {
         FUSILLI_TRY(allocateBufferOfType(handle, B, params.io_type, 1.0f));
     variantPack.insert({B, bBuf});
   }
+
+  // Execute graph a few times.
+  for (size_t i = 0; i < params.iterations; i++)
+    FUSILLI_CHECK_ERROR(graph->execute(variantPack));
+
+  return ok();
+}
+
+ErrorObject benchmark_conv_wgrad(const ConvBenchmarkParams &params) {
+#ifdef FUSILLI_ENABLE_AMDGPU
+  Handle handle = FUSILLI_TRY(Handle::create(Backend::AMDGPU));
+#else
+  Handle handle = FUSILLI_TRY(Handle::create(Backend::CPU));
+#endif
+
+  // Build attributes based on 2D/3D conv and layouts using struct methods.
+  // For WGrad: DY has output dimensions, X has input dimensions, DW has filter
+  // dimensions
+  auto dyDims =
+      params.getOutputDims(); // DY has same dims as output of forward pass
+  auto xDims =
+      params.getInputDims(); // X has same dims as input of forward pass
+  auto dwDims =
+      params.getFilterDims(); // DW has same dims as filter of forward pass
+
+  auto dyStride = params.getOutputStride(); // DY stride based on output layout
+  auto xStride = params.getInputStride();   // X stride based on input layout
+  auto dwStride = params.getFilterStride(); // DW stride based on filter layout
+
+  auto convStride = params.getConvStride();
+  auto convPadding = params.getConvPadding();
+  auto convDilation = params.getConvDilation();
+
+  // Build graph for the given handle (device), validate and compile it.
+  auto graph = std::make_shared<Graph>();
+
+  // Set unique name to prevent concurrent invocations of the benchmark driver
+  // from polluting the same cache files leading to race conditions.
+  auto graphName = params.getGraphName("benchmark_conv_wgrad");
+  graph->setName(graphName);
+
+  // Types on the graph are kept at fp32 but we explicitly set
+  // individual tensor types below based on configuration. These
+  // types hence don't matter much and are used only to infer
+  // missing type annotations on tensors.
+  graph->setIODataType(DataType::Float)
+      .setComputeDataType(DataType::Float)
+      .setIntermediateDataType(DataType::Float);
+
+  // DY tensor (gradient tensor) - has same dimensions as output of forward pass
+  auto DY = graph->tensor(
+      TensorAttr().setName("dy").setDim(dyDims).setStride(dyStride).setDataType(
+          params.io_type));
+
+  // X tensor (input tensor) - has same dimensions as input of forward pass
+  auto X = graph->tensor(
+      TensorAttr().setName("x").setDim(xDims).setStride(xStride).setDataType(
+          params.io_type));
+
+  auto conv_attr = ConvWGradAttr()
+                       .setStride(convStride)
+                       .setPadding(convPadding)
+                       .setDilation(convDilation)
+                       .setName("conv_wgrad");
+
+  auto DW = graph->convWGrad(DY, X, conv_attr);
+  DW->setDataType(params.io_type)
+      .setOutput(true)
+      .setDim(dwDims)
+      .setStride(dwStride);
+
+  // Validate, infer missing properties
+  FUSILLI_CHECK_ERROR(graph->validate());
+
+  // Compile
+  FUSILLI_CHECK_ERROR(graph->compile(handle, /*remove=*/true));
+
+  // Allocate input and output buffers.
+  auto dyBuf =
+      FUSILLI_TRY(allocateBufferOfType(handle, DY, params.io_type, 1.0f));
+  auto xBuf =
+      FUSILLI_TRY(allocateBufferOfType(handle, X, params.io_type, 1.0f));
+  auto dwBuf =
+      FUSILLI_TRY(allocateBufferOfType(handle, DW, params.io_type, 0.0f));
+
+  // Create variant pack.
+  std::unordered_map<std::shared_ptr<TensorAttr>, std::shared_ptr<Buffer>>
+      variantPack = {
+          {DY, dyBuf},
+          {X, xBuf},
+          {DW, dwBuf},
+      };
 
   // Execute graph a few times.
   for (size_t i = 0; i < params.iterations; i++)
@@ -444,7 +586,22 @@ int main(int argc, char **argv) {
                                .iterations = iter,
                                .io_type = convIOType};
 
-    auto status = benchmark_conv_fprop(params);
+    ErrorObject status;
+    switch (mode) {
+    case ConvMode::FWD:
+      status = benchmark_conv_fprop(params);
+      break;
+    case ConvMode::WGRAD:
+      status = benchmark_conv_wgrad(params);
+      break;
+    case ConvMode::DGRAD:
+      std::cerr << "DGRAD mode not yet implemented" << std::endl;
+      return 1;
+    default:
+      std::cerr << "Unknown conv mode: " << static_cast<int>(mode) << std::endl;
+      return 1;
+    }
+
     if (isError(status)) {
       std::cerr << "Fusilli Benchmark failed: " << status << std::endl;
       return 1;
