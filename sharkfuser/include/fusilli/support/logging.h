@@ -334,7 +334,7 @@ inline std::ostream &getStream() {
       isLoggingEnabled() = false;
       return std::cout;
     }
-    std::string filePath(logFile);
+    const std::string filePath(logFile);
     if (filePath == "stdout") {
       return std::cout;
     } else if (filePath == "stderr") {

@@ -53,16 +53,16 @@ public:
         ErrorCode::AttributeNotSet, "Pointwise mode not set");
 
     // Validate inputs based on mode
-    PointwiseAttr::Mode mode = pointwiseAttr.getMode();
-    int requiredCount = PointwiseAttr::kModeToRequiredInputCount.at(mode);
+    const PointwiseAttr::Mode mode = pointwiseAttr.getMode();
+    const int requiredCount = PointwiseAttr::kModeToRequiredInputCount.at(mode);
 
     // Validate input requirements (required inputs must exist, unnecessary ones
     // must not)
     constexpr int maxInputs = 3;
     for (int i = 0; i < maxInputs; ++i) {
       auto inputName = static_cast<PointwiseAttr::InputNames>(i);
-      bool hasInput = pointwiseAttr.inputs.contains(inputName) &&
-                      pointwiseAttr.inputs.at(inputName) != nullptr;
+      const bool hasInput = pointwiseAttr.inputs.contains(inputName) &&
+                            pointwiseAttr.inputs.at(inputName) != nullptr;
 
       if (i < requiredCount) {
         FUSILLI_RETURN_ERROR_IF(!hasInput, ErrorCode::AttributeNotSet,
@@ -119,8 +119,9 @@ public:
         // compute an output stride that has the same format as IN_0. This can
         // occur when all inputs are broadcasted.
         auto inputStride = pointwiseAttr.getIN_0()->getStride();
-        std::vector<size_t> strideOrder = generateStrideOrderPreservingFormat(
-            inputStride, outTensor->getDim().size());
+        const std::vector<size_t> strideOrder =
+            generateStrideOrderPreservingFormat(inputStride,
+                                                outTensor->getDim().size());
         outTensor->setStride(
             generateStrideFromDim(outTensor->getDim(), strideOrder));
       }

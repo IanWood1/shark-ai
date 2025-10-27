@@ -180,7 +180,7 @@ generateStrideOrderPreservingFormat(const std::vector<int64_t> inputStride,
 
   // If output_dim_size is larger, pad with remaining dimensions
   if (outputDimSize > inputStride.size()) {
-    size_t start = strideOrder.size();
+    const size_t start = strideOrder.size();
     strideOrder.resize(outputDimSize);
     std::iota(strideOrder.begin() + static_cast<int64_t>(start),
               strideOrder.end(), start);
@@ -191,7 +191,7 @@ generateStrideOrderPreservingFormat(const std::vector<int64_t> inputStride,
 inline std::vector<int64_t>
 generateStrideFromDim(const std::vector<int64_t> &dim,
                       const std::vector<size_t> &strideOrder) {
-  size_t numDims = dim.size();
+  const size_t numDims = dim.size();
   std::vector<int64_t> stride(numDims);
   std::vector<std::pair<size_t, int64_t>> idxToDimInStrideOrder(numDims);
 
@@ -278,7 +278,7 @@ computeBroadcastShape(const std::vector<std::vector<int64_t>> &shapes) {
                           "All input shapes are empty");
 
   // Find the maximum rank in `shapes`.
-  size_t maxSize =
+  const size_t maxSize =
       std::max_element(
           filteredShapes.begin(), filteredShapes.end(),
           [](const std::vector<int64_t> &lhs, const std::vector<int64_t> &rhs) {
@@ -291,8 +291,8 @@ computeBroadcastShape(const std::vector<std::vector<int64_t>> &shapes) {
     // When broadcasting shapes of differing ranks, the dimensions are
     // right-aligned. Process from rightmost dimension to leftmost.
     for (size_t offset = 0; offset < shape.size(); ++offset) {
-      size_t commonIdx = commonShape.size() - 1 - offset;
-      size_t shapeIdx = shape.size() - 1 - offset;
+      const size_t commonIdx = commonShape.size() - 1 - offset;
+      const size_t shapeIdx = shape.size() - 1 - offset;
 
       if (commonShape[commonIdx] == 1) {
         commonShape[commonIdx] = shape[shapeIdx];
@@ -456,13 +456,13 @@ public:
   bool isScalar() const { return isScalar_; }
 
   bool isContiguous() const {
-    std::vector<int64_t> expectedStride =
+    const std::vector<int64_t> expectedStride =
         generateStrideFromDim(dim_, getContiguousStrideOrder(dim_.size()));
     return expectedStride == stride_;
   }
 
   bool isChannelsLast() const {
-    std::vector<int64_t> expectedStride =
+    const std::vector<int64_t> expectedStride =
         generateStrideFromDim(dim_, getChannelsLastStrideOrder(dim_.size()));
     return expectedStride == stride_;
   }
@@ -471,7 +471,7 @@ public:
   //  dims [N, C, H, W] + strideOrder [3, 2, 1, 0] -> [N, C, H, W]
   //  dims [N, C, H, W] + strideOrder [3, 0, 2, 1] -> [N, H, W, C]
   std::vector<int64_t> getPhysicalDim() const {
-    size_t numDims = dim_.size();
+    const size_t numDims = dim_.size();
     std::vector<int64_t> physicalDims(numDims);
     std::vector<size_t> strideOrder;
     if (isContiguous())

@@ -17,7 +17,6 @@ Checks: [
         -performance-avoid-endl,
         -bugprone-macro-parentheses,
 #TODO: these are to get the build to pass. They should either be re-enabled or moved above.
-        -misc-const-correctness,
         -bugprone-easily-swappable-parameters,
         -bugprone-unchecked-optional-access,
         -performance-no-int-to-ptr,

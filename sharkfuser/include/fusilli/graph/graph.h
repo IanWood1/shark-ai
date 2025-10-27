@@ -85,10 +85,10 @@ public:
                             "Graph must be validated before being compiled");
 
     // Generate MLIR assembly for this graph.
-    std::string generatedAsm = FUSILLI_TRY(emitAsm());
+    const std::string generatedAsm = FUSILLI_TRY(emitAsm());
 
     // Compile using IREE compiler or reuse cached artifact.
-    std::string vmfbPath =
+    const std::string vmfbPath =
         FUSILLI_TRY(getCompiledArtifact(handle, generatedAsm, remove));
 
     FUSILLI_LOG_LABEL_ENDL("INFO: Compiled Graph cached at \"" + vmfbPath +
@@ -358,8 +358,8 @@ private:
     FUSILLI_CHECK_ERROR(cache.input.write(generatedAsm));
 
     // Build + cache + log compile command.
-    std::string cmd = buildCompileCommand(handle, cache.input, cache.output,
-                                          cache.statistics);
+    const std::string cmd = buildCompileCommand(handle, cache.input,
+                                                cache.output, cache.statistics);
     FUSILLI_CHECK_ERROR(cache.command.write(cmd));
     FUSILLI_LOG_LABEL_ENDL("INFO: iree-compile command");
     FUSILLI_LOG_ENDL(cmd);
@@ -367,7 +367,7 @@ private:
     // Run iree-compile.
     // TODO(#1934): in the error case, std::system will dump to stderr, it would
     // be great to capture this for better logging + reproducer production.
-    int returnCode = std::system(cmd.c_str());
+    const int returnCode = std::system(cmd.c_str());
     FUSILLI_RETURN_ERROR_IF(returnCode, ErrorCode::CompileFailure,
                             "iree-compile command failed");
 
@@ -419,16 +419,16 @@ private:
     }
 
     // Open expected files.
-    CacheFile input = FUSILLI_TRY(CacheFile::open(
+    const CacheFile input = FUSILLI_TRY(CacheFile::open(
         /*graphName=*/getName(),
         /*fileName=*/IREE_COMPILE_INPUT_FILENAME));
-    CacheFile output = FUSILLI_TRY(CacheFile::open(
+    const CacheFile output = FUSILLI_TRY(CacheFile::open(
         /*graphName=*/getName(),
         /*fileName=*/IREE_COMPILE_OUTPUT_FILENAME));
-    CacheFile command = FUSILLI_TRY(CacheFile::open(
+    const CacheFile command = FUSILLI_TRY(CacheFile::open(
         /*graphName=*/getName(),
         /*fileName=*/IREE_COMPILE_COMMAND_FILENAME));
-    CacheFile statistics = FUSILLI_TRY(CacheFile::open(
+    const CacheFile statistics = FUSILLI_TRY(CacheFile::open(
         /*graphName=*/getName(),
         /*fileName=*/IREE_COMPILE_STATISTICS_FILENAME));
 
@@ -439,7 +439,8 @@ private:
     }
 
     // Check for a cache miss on compile command.
-    std::string cmd = buildCompileCommand(handle, input, output, statistics);
+    const std::string cmd =
+        buildCompileCommand(handle, input, output, statistics);
     if (FUSILLI_TRY(command.read()) != cmd) {
       FUSILLI_LOG_ENDL("Compile command does not match");
       return ok(false);

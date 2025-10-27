@@ -63,12 +63,12 @@ public:
   // returns an ErrorObject if file could not be created.
   static ErrorOr<CacheFile> create(const std::string &graphName,
                                    const std::string &fileName, bool remove) {
-    std::filesystem::path path = CacheFile::getPath(graphName, fileName);
+    const std::filesystem::path path = CacheFile::getPath(graphName, fileName);
     FUSILLI_LOG_LABEL_ENDL("INFO: Creating Cache file");
     FUSILLI_LOG_ENDL(path);
 
     // Create directory: ${HOME}/.cache/fusilli/<graphName>
-    std::filesystem::path cacheDir = path.parent_path();
+    const std::filesystem::path cacheDir = path.parent_path();
     std::error_code ec;
     std::filesystem::create_directories(cacheDir, ec);
     FUSILLI_RETURN_ERROR_IF(ec, ErrorCode::FileSystemFailure,
@@ -88,7 +88,7 @@ public:
   // the file does not exist.
   static ErrorOr<CacheFile> open(const std::string &graphName,
                                  const std::string &fileName) {
-    std::filesystem::path path = CacheFile::getPath(graphName, fileName);
+    const std::filesystem::path path = CacheFile::getPath(graphName, fileName);
 
     // Check if the file exists.
     FUSILLI_RETURN_ERROR_IF(!std::filesystem::exists(path),
@@ -140,7 +140,7 @@ public:
       return *this;
     // If ownership of the cached file is simply changing, we aren't creating a
     // dangling resource that might to be removed.
-    bool samePath = path == other.path;
+    const bool samePath = path == other.path;
     // Remove current resource if needed.
     if (remove_ && !path.empty() && !samePath)
       std::filesystem::remove(path);
@@ -181,7 +181,7 @@ public:
   }
 
   // Read contents of cache file.
-  ErrorOr<std::string> read() {
+  ErrorOr<std::string> read() const {
     // std::ios::ate opens file and moves the cursor to the end, allowing us
     // to get the file size with tellg().
     std::ifstream file(path, std::ios::binary | std::ios::ate);

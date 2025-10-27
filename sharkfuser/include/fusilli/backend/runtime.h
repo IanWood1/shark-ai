@@ -73,7 +73,7 @@ Handle::createSharedInstance() {
   // If multiple threads simultaneously request a handle, they will
   // race into `createSharedInstance()` but only one will succeed in
   // creating the instance, and others will use it.
-  std::lock_guard<std::mutex> lock(instanceMutex);
+  const std::lock_guard<std::mutex> lock(instanceMutex);
 
   // Try to get the shared_ptr from the weak_ptr (if it exists).
   IreeRuntimeInstanceSharedPtrType sharedInstance = weakInstance.lock();
@@ -204,7 +204,7 @@ inline ErrorObject Graph::execute(
   if (!kBackendExecuteAsync.contains(handle.getBackend())) // C++ 20
     return ErrorObject(ErrorCode::InternalError,
                        "Graph::execute got an unknown backend");
-  bool executeAsync = kBackendExecuteAsync.at(handle.getBackend());
+  const bool executeAsync = kBackendExecuteAsync.at(handle.getBackend());
 
   // Call `module.main` for synchronous execution and `module.main$async` for
   // asynchronous execution.

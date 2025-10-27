@@ -98,9 +98,9 @@ public:
     FUSILLI_RETURN_ERROR_IF(dilation.empty(), ErrorCode::AttributeNotSet,
                             "Conv dilation not set");
 
-    std::shared_ptr<TensorAttr> xT = convFPropAttr.getX();
-    std::shared_ptr<TensorAttr> wT = convFPropAttr.getW();
-    std::shared_ptr<TensorAttr> yT = convFPropAttr.getY();
+    const std::shared_ptr<TensorAttr> xT = convFPropAttr.getX();
+    const std::shared_ptr<TensorAttr> wT = convFPropAttr.getW();
+    const std::shared_ptr<TensorAttr> yT = convFPropAttr.getY();
 
     // Ensure input and weight tensors are set.
     FUSILLI_RETURN_ERROR_IF(!xT, ErrorCode::AttributeNotSet,
@@ -110,8 +110,8 @@ public:
     FUSILLI_RETURN_ERROR_IF(!yT, ErrorCode::AttributeNotSet,
                             "Conv output tensor Y not set");
 
-    size_t xRank = xT->getDim().size();
-    size_t wRank = wT->getDim().size();
+    const size_t xRank = xT->getDim().size();
+    const size_t wRank = wT->getDim().size();
 
     // Rank checks on input and weight tensors.
     FUSILLI_RETURN_ERROR_IF(
@@ -123,7 +123,7 @@ public:
 
     // Check padding, stride and dilation match rank of conv
     // All dims except batch and channel (feature) are spatial dims
-    size_t numSpatialDims = xRank - 2;
+    const size_t numSpatialDims = xRank - 2;
     FUSILLI_RETURN_ERROR_IF(
         padding.size() != numSpatialDims, ErrorCode::InvalidAttribute,
         "Conv padding size does not match number of spatial dimensions");
@@ -149,14 +149,14 @@ public:
     // Group count checks
     constexpr size_t inChannelsIdx = 1;
     constexpr size_t outChannelsIdx = 0;
-    int64_t inChannels = xT->getDim()[inChannelsIdx];
-    int64_t outChannels = wT->getDim()[outChannelsIdx];
-    int64_t filterChannels = wT->getDim()[inChannelsIdx];
+    const int64_t inChannels = xT->getDim()[inChannelsIdx];
+    const int64_t outChannels = wT->getDim()[outChannelsIdx];
+    const int64_t filterChannels = wT->getDim()[inChannelsIdx];
     FUSILLI_RETURN_ERROR_IF(
         inChannels % filterChannels != 0, ErrorCode::InvalidAttribute,
         "Conv input channels must be divisible by the filter channels");
 
-    int64_t groupCount = inChannels / filterChannels;
+    const int64_t groupCount = inChannels / filterChannels;
     FUSILLI_RETURN_ERROR_IF(
         groupCount <= 0 || groupCount > inChannels || groupCount > outChannels,
         ErrorCode::InvalidAttribute,
@@ -176,9 +176,9 @@ public:
     convFPropAttr.fillFromContext(context);
 
     // Logical layout is always channels-first (NCHW if 4D).
-    std::shared_ptr<TensorAttr> xT = convFPropAttr.getX(); // NCHW if 4D
-    std::shared_ptr<TensorAttr> wT = convFPropAttr.getW(); // KCRS if 4D
-    std::shared_ptr<TensorAttr> yT = convFPropAttr.getY(); // NKPQ if 4D
+    const std::shared_ptr<TensorAttr> xT = convFPropAttr.getX(); // NCHW if 4D
+    const std::shared_ptr<TensorAttr> wT = convFPropAttr.getW(); // KCRS if 4D
+    const std::shared_ptr<TensorAttr> yT = convFPropAttr.getY(); // NKPQ if 4D
 
     const std::vector<int64_t> &dilation = convFPropAttr.getDilation();
     const std::vector<int64_t> &padding = convFPropAttr.getPadding();
@@ -215,12 +215,12 @@ public:
     FUSILLI_LOG_LABEL_ENDL("INFO: Post-Validating ConvFPropNode '"
                            << convFPropAttr.getName() << "'");
 
-    std::shared_ptr<TensorAttr> xT = convFPropAttr.getX();
-    std::shared_ptr<TensorAttr> wT = convFPropAttr.getW();
-    std::shared_ptr<TensorAttr> yT = convFPropAttr.getY();
+    const std::shared_ptr<TensorAttr> xT = convFPropAttr.getX();
+    const std::shared_ptr<TensorAttr> wT = convFPropAttr.getW();
+    const std::shared_ptr<TensorAttr> yT = convFPropAttr.getY();
 
-    size_t xRank = xT->getDim().size();
-    size_t yRank = yT->getDim().size();
+    const size_t xRank = xT->getDim().size();
+    const size_t yRank = yT->getDim().size();
 
     // Rank checks
     FUSILLI_RETURN_ERROR_IF(
@@ -293,9 +293,9 @@ public:
     FUSILLI_RETURN_ERROR_IF(dilation.empty(), ErrorCode::AttributeNotSet,
                             "ConvWGrad dilation not set");
 
-    std::shared_ptr<TensorAttr> dyT = convWGradAttr.getDY();
-    std::shared_ptr<TensorAttr> xT = convWGradAttr.getX();
-    std::shared_ptr<TensorAttr> dwT = convWGradAttr.getDW();
+    const std::shared_ptr<TensorAttr> dyT = convWGradAttr.getDY();
+    const std::shared_ptr<TensorAttr> xT = convWGradAttr.getX();
+    const std::shared_ptr<TensorAttr> dwT = convWGradAttr.getDW();
 
     // Ensure input and weight tensors are set.
     FUSILLI_RETURN_ERROR_IF(!dyT, ErrorCode::AttributeNotSet,
@@ -306,8 +306,8 @@ public:
                             "ConvWGrad output tensor DW not set");
 
     // Rank checks on DY and X tensors.
-    size_t dyRank = dyT->getDim().size();
-    size_t xRank = xT->getDim().size();
+    const size_t dyRank = dyT->getDim().size();
+    const size_t xRank = xT->getDim().size();
 
     FUSILLI_RETURN_ERROR_IF(
         dyRank < 3 || xRank < 3, ErrorCode::InvalidAttribute,
@@ -317,7 +317,7 @@ public:
 
     // Check padding, stride and dilation match rank of conv
     // All dims except batch and channel (feature) are spatial dims
-    size_t numSpatialDims = dyRank - 2;
+    const size_t numSpatialDims = dyRank - 2;
     FUSILLI_RETURN_ERROR_IF(
         padding.size() != numSpatialDims, ErrorCode::InvalidAttribute,
         "ConvWGrad padding size does not match number of spatial dimensions");
@@ -348,8 +348,8 @@ public:
 
     convWGradAttr.fillFromContext(context);
 
-    std::shared_ptr<TensorAttr> dyT = convWGradAttr.getDY();
-    std::shared_ptr<TensorAttr> dwT = convWGradAttr.getDW();
+    const std::shared_ptr<TensorAttr> dyT = convWGradAttr.getDY();
+    const std::shared_ptr<TensorAttr> dwT = convWGradAttr.getDW();
     const std::vector<int64_t> &wDim = dwT->getDim();
 
     // Can't infer the output dims because we don't know the number of groups
@@ -374,11 +374,11 @@ public:
     FUSILLI_LOG_LABEL_ENDL("INFO: Post-Validating ConvWGradNode '"
                            << convWGradAttr.getName() << "'");
 
-    std::shared_ptr<TensorAttr> dyT = convWGradAttr.getDY();
-    std::shared_ptr<TensorAttr> xT = convWGradAttr.getX();
-    std::shared_ptr<TensorAttr> dwT = convWGradAttr.getDW();
+    const std::shared_ptr<TensorAttr> dyT = convWGradAttr.getDY();
+    const std::shared_ptr<TensorAttr> xT = convWGradAttr.getX();
+    const std::shared_ptr<TensorAttr> dwT = convWGradAttr.getDW();
 
-    size_t dwRank = dwT->getDim().size();
+    const size_t dwRank = dwT->getDim().size();
     FUSILLI_RETURN_ERROR_IF(
         dwRank < 3, ErrorCode::InvalidAttribute,
         "ConvWGrad weight gradient tensor DW must have a rank of at least 3");
@@ -446,9 +446,9 @@ public:
     FUSILLI_RETURN_ERROR_IF(dilation.empty(), ErrorCode::AttributeNotSet,
                             "ConvDGrad dilation not set");
 
-    std::shared_ptr<TensorAttr> dyT = convDGradAttr.getDY();
-    std::shared_ptr<TensorAttr> wT = convDGradAttr.getW();
-    std::shared_ptr<TensorAttr> dxT = convDGradAttr.getDX();
+    const std::shared_ptr<TensorAttr> dyT = convDGradAttr.getDY();
+    const std::shared_ptr<TensorAttr> wT = convDGradAttr.getW();
+    const std::shared_ptr<TensorAttr> dxT = convDGradAttr.getDX();
 
     // Ensure input and weight tensors are set.
     FUSILLI_RETURN_ERROR_IF(!dyT, ErrorCode::AttributeNotSet,
@@ -458,8 +458,8 @@ public:
     FUSILLI_RETURN_ERROR_IF(!dxT, ErrorCode::AttributeNotSet,
                             "ConvDGrad output tensor DX not set");
 
-    size_t dyRank = dyT->getDim().size();
-    size_t wRank = wT->getDim().size();
+    const size_t dyRank = dyT->getDim().size();
+    const size_t wRank = wT->getDim().size();
 
     FUSILLI_RETURN_ERROR_IF(
         dyRank < 3 || wRank < 3, ErrorCode::InvalidAttribute,
@@ -467,7 +467,7 @@ public:
 
     // Check padding, stride and dilation match rank of conv
     // All dims except batch and channel (feature) are spatial dims
-    size_t numSpatialDims = dyRank - 2;
+    const size_t numSpatialDims = dyRank - 2;
     FUSILLI_RETURN_ERROR_IF(
         padding.size() != numSpatialDims, ErrorCode::InvalidAttribute,
         "ConvDGrad padding size does not match number of spatial dimensions");
@@ -498,8 +498,8 @@ public:
 
     convDGradAttr.fillFromContext(context);
 
-    std::shared_ptr<TensorAttr> dyT = convDGradAttr.getDY();
-    std::shared_ptr<TensorAttr> dxT = convDGradAttr.getDX();
+    const std::shared_ptr<TensorAttr> dyT = convDGradAttr.getDY();
+    const std::shared_ptr<TensorAttr> dxT = convDGradAttr.getDX();
     const std::vector<int64_t> &dxDim = dxT->getDim();
     const std::vector<int64_t> &dxStride = dxT->getStride();
 
@@ -525,11 +525,11 @@ public:
     FUSILLI_LOG_LABEL_ENDL("INFO: Post-Validating ConvDGradNode '"
                            << convDGradAttr.getName() << "'");
 
-    std::shared_ptr<TensorAttr> dyT = convDGradAttr.getDY();
-    std::shared_ptr<TensorAttr> wT = convDGradAttr.getW();
-    std::shared_ptr<TensorAttr> dxT = convDGradAttr.getDX();
-    size_t dyRank = dyT->getDim().size();
-    size_t dxRank = dxT->getDim().size();
+    const std::shared_ptr<TensorAttr> dyT = convDGradAttr.getDY();
+    const std::shared_ptr<TensorAttr> wT = convDGradAttr.getW();
+    const std::shared_ptr<TensorAttr> dxT = convDGradAttr.getDX();
+    const size_t dyRank = dyT->getDim().size();
+    const size_t dxRank = dxT->getDim().size();
 
     FUSILLI_RETURN_ERROR_IF(
         dxRank < 3, ErrorCode::InvalidAttribute,
