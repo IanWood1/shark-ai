@@ -104,6 +104,7 @@ option(FUSILLI_BUILD_TESTS "Builds C++ tests and samples" ON)
 option(FUSILLI_BUILD_BENCHMARKS "Builds C++ benchmarks" ON)
 option(FUSILLI_CODE_COVERAGE "Enable code coverage for tests" OFF)
 option(FUSILLI_ENABLE_LOGGING "Enable logging for tests and samples" OFF)
+option(FUSILLI_ENABLE_CLANG_TIDY "Enable clang-tidy for tests and samples" ON)
 
 # Build Type - Release/Debug
 if(NOT CMAKE_BUILD_TYPE)
@@ -154,6 +155,14 @@ if(FUSILLI_BUILD_TESTS)
 
   # Activate CTest integration
   enable_testing()
+endif()
+
+if(FUSILLI_ENABLE_CLANG_TIDY)
+  set(CMAKE_CXX_CLANG_TIDY
+    clang-tidy;
+    -warnings-as-errors=*;
+    --config-file=${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy;
+  )
 endif()
 
 # Build benchmarks
