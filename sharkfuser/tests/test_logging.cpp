@@ -19,7 +19,7 @@ using namespace fusilli;
 TEST_CASE("ConditionalStreamer conditioned on isLoggingEnabled", "[logging]") {
   // Create a string stream to capture the output.
   std::ostringstream oss;
-  ConditionalStreamer logger(oss);
+  ConditionalStreamer const logger(oss);
 
   // When env variable is set to 0, disable logging.
   isLoggingEnabled() = false;
@@ -124,7 +124,7 @@ TEST_CASE("error_t and ErrorCode operators and methods", "[logging]") {
   }
 
   SECTION("operator<< for error_t") {
-    ErrorObject err(ErrorCode::InvalidAttribute, "bad attr");
+    ErrorObject const err(ErrorCode::InvalidAttribute, "bad attr");
     std::ostringstream oss;
     oss << err;
     // Should contain both code and message.
@@ -163,7 +163,7 @@ TEST_CASE("ErrorOr construction", "[logging][erroror]") {
   }
 
   SECTION("Construct from error") {
-    ErrorOr<int> result = error(ErrorCode::NotImplemented, "not impl");
+    ErrorOr<int> const result = error(ErrorCode::NotImplemented, "not impl");
     REQUIRE(!isOk(result));
     REQUIRE(isError(result));
   }
@@ -178,8 +178,8 @@ TEST_CASE("ErrorOr construction", "[logging][erroror]") {
     { // Different types error case.
       ErrorOr<const char *> source =
           error(ErrorCode::NotImplemented, "test case");
-      ErrorOr<std::string> destination = std::move(source);
-      ErrorObject err = destination; // Convert to ErrorObject
+      ErrorOr<std::string> const destination = std::move(source);
+      ErrorObject const err = destination; // Convert to ErrorObject
       REQUIRE(isError(err));
       REQUIRE(err.getCode() == ErrorCode::NotImplemented);
       REQUIRE(err.getMessage() == "test case");
@@ -193,8 +193,8 @@ TEST_CASE("ErrorOr construction", "[logging][erroror]") {
     { // Same types error case.
       ErrorOr<std::string> source =
           error(ErrorCode::NotImplemented, "test case");
-      ErrorOr<std::string> destination = std::move(source);
-      ErrorObject err = destination; // Convert to ErrorObject
+      ErrorOr<std::string> const destination = std::move(source);
+      ErrorObject const err = destination; // Convert to ErrorObject
       REQUIRE(isError(err));
       REQUIRE(err.getCode() == ErrorCode::NotImplemented);
       REQUIRE(err.getMessage() == "test case");
@@ -224,17 +224,17 @@ TEST_CASE("ErrorOr accessors", "[logging][erroror]") {
 
 TEST_CASE("ErrorOr conversion to ErrorObject", "[logging][erroror]") {
   SECTION("Success case") {
-    ErrorOr<int> result = ok(42);
-    ErrorObject err = result;
+    ErrorOr<int> const result = ok(42);
+    ErrorObject const err = result;
     FUSILLI_REQUIRE_OK(err);
     REQUIRE(err.getCode() == ErrorCode::OK);
     REQUIRE(err.getMessage().empty());
   }
 
   SECTION("Error case") {
-    ErrorOr<int> result =
+    ErrorOr<int> const result =
         error(ErrorCode::VariantPackError, "variant pack error");
-    ErrorObject err = result;
+    ErrorObject const err = result;
     REQUIRE(isError(err));
     REQUIRE(err.getCode() == ErrorCode::VariantPackError);
     REQUIRE(err.getMessage() == "variant pack error");
@@ -276,10 +276,10 @@ TEST_CASE("ErrorOr -> ErrorOr error propagation", "[logging][erroror]") {
 
   SECTION("Error propagation") {
     failingFunctionCallCount = 0;
-    ErrorOr<std::string> result = failingConsumer();
+    ErrorOr<std::string> const result = failingConsumer();
     REQUIRE(failingFunctionCallCount == 1);
     REQUIRE(isError(result));
-    ErrorObject err = result;
+    ErrorObject const err = result;
     REQUIRE(err.getCode() == ErrorCode::NotImplemented);
     REQUIRE(err.getMessage() == "not implemented");
   }
@@ -316,14 +316,14 @@ TEST_CASE("ErrorOr -> ErrorObject error propagation", "[logging][erroror]") {
 
   SECTION("Success propagation") {
     successFunctionCallCount = 0;
-    ErrorObject result = consumerFunction();
+    ErrorObject const result = consumerFunction();
     REQUIRE(successFunctionCallCount == 1);
     FUSILLI_REQUIRE_OK(result);
   }
 
   SECTION("Error propagation") {
     failingFunctionCallCount = 0;
-    ErrorObject result = failingConsumer();
+    ErrorObject const result = failingConsumer();
     REQUIRE(failingFunctionCallCount == 1);
     REQUIRE(isError(result));
     REQUIRE(result.getCode() == ErrorCode::NotImplemented);
@@ -369,10 +369,10 @@ TEST_CASE("ErrorObject -> ErrorOr error propagation", "[logging][erroror]") {
 
   SECTION("Error propagation") {
     failingFunctionCallCount = 0;
-    ErrorOr<std::string> result = failingConsumer();
+    ErrorOr<std::string> const result = failingConsumer();
     REQUIRE(failingFunctionCallCount == 1);
     REQUIRE(isError(result));
-    ErrorObject err = result;
+    ErrorObject const err = result;
     REQUIRE(err.getCode() == ErrorCode::NotImplemented);
     REQUIRE(err.getMessage() == "not implemented");
   }

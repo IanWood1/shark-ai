@@ -21,26 +21,29 @@ using namespace fusilli;
 
 TEST_CASE("Single Handle creation", "[handle]") {
   SECTION("CPU handle") {
-    Handle handle = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::CPU));
+    const Handle handle = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::CPU));
   }
 #ifdef FUSILLI_ENABLE_AMDGPU
   SECTION("GPU handle") {
-    Handle handle = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::AMDGPU));
+    const Handle handle =
+        FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::AMDGPU));
   }
   SECTION("GPU handle on device") {
-    Handle handle = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::AMDGPU, 0));
+    const Handle handle =
+        FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::AMDGPU, 0));
   }
   SECTION("GPU handle on device with stream") {
-    Handle handle =
+    const Handle handle =
         FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::AMDGPU, 0, 0));
   }
 #endif
 }
 
 TEST_CASE("Multiple Handle creation", "[handle]") {
-  Handle handle1 = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::CPU));
+  const Handle handle1 = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::CPU));
 #ifdef FUSILLI_ENABLE_AMDGPU
-  Handle handle2 = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::AMDGPU));
+  const Handle handle2 =
+      FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::AMDGPU));
 #endif
 }
 
@@ -72,7 +75,7 @@ TEST_CASE("Multi-threaded Handle creation", "[handle][thread]") {
         creationFailed.store(true);
         return;
       }
-      std::lock_guard<std::mutex> lock(handlesMutex);
+      std::lock_guard<std::mutex> const lock(handlesMutex);
       handles.push_back(std::move(*handleOrError));
     });
   }
@@ -91,7 +94,7 @@ TEST_CASE("Handle creation with deviceId and stream, CPU backend should fail",
   auto handleOrError =
       Handle::create(Backend::CPU, /*deviceId=*/0, /*stream=*/0);
   REQUIRE(isError(handleOrError));
-  ErrorObject error = handleOrError;
+  ErrorObject const error = handleOrError;
   REQUIRE(error.getCode() == ErrorCode::InvalidArgument);
 }
 
@@ -100,6 +103,6 @@ TEST_CASE("Handle creation with deviceId, CPU backend should fail",
   // Attempting to create CPU handle with with a specific deviceId should fail.
   auto handleOrError = Handle::create(Backend::CPU, /*deviceId=*/0);
   REQUIRE(isError(handleOrError));
-  ErrorObject error = handleOrError;
+  ErrorObject const error = handleOrError;
   REQUIRE(error.getCode() == ErrorCode::InvalidArgument);
 }

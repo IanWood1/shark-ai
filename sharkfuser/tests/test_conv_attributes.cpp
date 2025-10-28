@@ -15,7 +15,7 @@
 using namespace fusilli;
 
 TEST_CASE("ConvFPropAttr default constructor", "[conv_fprop_attr]") {
-  ConvFPropAttr attr;
+  const ConvFPropAttr attr;
   REQUIRE(attr.getStride().empty());
   REQUIRE(attr.getPadding().empty());
   REQUIRE(attr.getDilation().empty());
@@ -76,9 +76,9 @@ TEST_CASE("ConvFPropAttr setter templated overrides", "[conv_fprop_attr]") {
   std::vector<int64_t> paddingVec = {0, 1};
   std::vector<int64_t> dilationVec = {1, 1};
 
-  std::span<int64_t> strideSpan(strideVec);
-  std::span<int64_t> paddingSpan(paddingVec);
-  std::span<int64_t> dilationSpan(dilationVec);
+  std::span<int64_t> const strideSpan(strideVec);
+  std::span<int64_t> const paddingSpan(paddingVec);
+  std::span<int64_t> const dilationSpan(dilationVec);
 
   // Setters either take a const std::vector & or a type constrained template,
   // std::span should call the templated override.
@@ -90,7 +90,7 @@ TEST_CASE("ConvFPropAttr setter templated overrides", "[conv_fprop_attr]") {
 }
 
 TEST_CASE("ConvWGradAttr default constructor", "[conv_wgrad_attr]") {
-  ConvWGradAttr attr;
+  ConvWGradAttr const attr;
   REQUIRE(attr.getStride().empty());
   REQUIRE(attr.getPadding().empty());
   REQUIRE(attr.getDilation().empty());
@@ -151,9 +151,9 @@ TEST_CASE("ConvWGradAttr setter templated overrides", "[conv_wgrad_attr]") {
   std::vector<int64_t> paddingVec = {0, 1};
   std::vector<int64_t> dilationVec = {1, 1};
 
-  std::span<int64_t> strideSpan(strideVec);
-  std::span<int64_t> paddingSpan(paddingVec);
-  std::span<int64_t> dilationSpan(dilationVec);
+  std::span<int64_t> const strideSpan(strideVec);
+  std::span<int64_t> const paddingSpan(paddingVec);
+  std::span<int64_t> const dilationSpan(dilationVec);
 
   // Setters either take a const std::vector & or a type constrained template,
   // std::span should call the templated override.
@@ -165,7 +165,7 @@ TEST_CASE("ConvWGradAttr setter templated overrides", "[conv_wgrad_attr]") {
 }
 
 TEST_CASE("ConvDGradAttr default constructor", "[conv_dgrad_attr]") {
-  ConvDGradAttr attr;
+  ConvDGradAttr const attr;
   REQUIRE(attr.getStride().empty());
   REQUIRE(attr.getPadding().empty());
   REQUIRE(attr.getDilation().empty());
@@ -226,9 +226,9 @@ TEST_CASE("ConvDGradAttr setter templated overrides", "[conv_dgrad_attr]") {
   std::vector<int64_t> paddingVec = {0, 1};
   std::vector<int64_t> dilationVec = {1, 1};
 
-  std::span<int64_t> strideSpan(strideVec);
-  std::span<int64_t> paddingSpan(paddingVec);
-  std::span<int64_t> dilationSpan(dilationVec);
+  std::span<int64_t> const strideSpan(strideVec);
+  std::span<int64_t> const paddingSpan(paddingVec);
+  std::span<int64_t> const dilationSpan(dilationVec);
 
   // Setters either take a const std::vector & or a type constrained template,
   // std::span should call the templated override.

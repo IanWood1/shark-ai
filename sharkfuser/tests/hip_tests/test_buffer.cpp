@@ -27,10 +27,10 @@ importTo1DBufferView(fusilli::Handle &handle, void *devicePtr,
                          iree_hal_buffer_release_callback_null()) {
   // Alocators.
   iree_hal_allocator_t *deviceAllocator = iree_hal_device_allocator(handle);
-  iree_allocator_t hostAllocator = iree_allocator_system();
+  iree_allocator_t const hostAllocator = iree_allocator_system();
 
   // Import external buffer into IREE runtime.
-  iree_hal_buffer_params_t bufferParams = {
+  iree_hal_buffer_params_t const bufferParams = {
       .usage = IREE_HAL_BUFFER_USAGE_DEFAULT,
       .access = IREE_HAL_MEMORY_ACCESS_READ | IREE_HAL_MEMORY_ACCESS_WRITE,
       .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL,
@@ -94,7 +94,7 @@ TEST_CASE("Buffer import", "[buffer][hip_tests]") {
 
   // Callback set on IREE buffer and called in `iree_hal_hip_buffer_destroy`.
   bool didCleanupBuffer = false;
-  iree_hal_buffer_release_callback_t releaseCallback = {
+  iree_hal_buffer_release_callback_t const releaseCallback = {
       .fn = testBufferReleaseCallback, .user_data = &didCleanupBuffer};
 
   // Import external buffer using the utility function
@@ -104,7 +104,7 @@ TEST_CASE("Buffer import", "[buffer][hip_tests]") {
 
   {
     // Buffer is a RAII type that retains the buffer view.
-    Buffer fusilliBufferResult =
+    Buffer const fusilliBufferResult =
         FUSILLI_REQUIRE_UNWRAP(fusilli::Buffer::import(outBufferView));
 
     // The IREE buffer view and IREE buffer will now be tied to fusilli Buffer's

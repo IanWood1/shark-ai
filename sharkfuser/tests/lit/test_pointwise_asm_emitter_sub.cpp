@@ -32,7 +32,7 @@
 using namespace fusilli;
 
 ErrorObject test_pointwise_asm_emitter_sub(const std::string &mode) {
-  int64_t c = 3, h = 16, w = 16;
+  const int64_t c = 3, h = 16, w = 16;
   auto graph = std::make_shared<Graph>();
   graph->setName("pointwise_asm_emitter_sub");
   graph->setIODataType(DataType::Float).setComputeDataType(DataType::Float);
@@ -63,9 +63,9 @@ ErrorObject test_pointwise_asm_emitter_sub(const std::string &mode) {
 
   if (mode == "stats") {
 #ifdef FUSILLI_ENABLE_AMDGPU
-    Handle handle = FUSILLI_TRY(Handle::create(Backend::AMDGPU));
+    const Handle handle = FUSILLI_TRY(Handle::create(Backend::AMDGPU));
 #else
-    Handle handle = FUSILLI_TRY(Handle::create(Backend::CPU));
+    const Handle handle = FUSILLI_TRY(Handle::create(Backend::CPU));
 #endif
     FUSILLI_CHECK_ERROR(graph->compile(handle, /*remove=*/true));
     std::cout << FUSILLI_TRY(graph->readCompilationCacheFile(
@@ -77,7 +77,7 @@ ErrorObject test_pointwise_asm_emitter_sub(const std::string &mode) {
 }
 
 int main(int argc, char **argv) {
-  std::string mode = (argc > 1) ? argv[1] : "default";
+  const std::string mode = (argc > 1) ? argv[1] : "default";
 
   auto status = test_pointwise_asm_emitter_sub(mode);
   if (isError(status)) {

@@ -72,7 +72,7 @@ using namespace fusilli;
 
 ErrorObject
 test_conv_asm_emitter_x_nchw_w_kcrs_with_pad(const std::string &mode) {
-  int64_t n = 16, c = 128, h = 64, w = 32, k = 256, r = 3, s = 3;
+  const int64_t n = 16, c = 128, h = 64, w = 32, k = 256, r = 3, s = 3;
   auto graph = std::make_shared<Graph>();
   graph->setName("conv_asm_emitter_x_nchw_w_kcrs_with_pad");
   graph->setIODataType(DataType::Float).setComputeDataType(DataType::Float);
@@ -105,9 +105,9 @@ test_conv_asm_emitter_x_nchw_w_kcrs_with_pad(const std::string &mode) {
 
   if (mode == "stats") {
 #ifdef FUSILLI_ENABLE_AMDGPU
-    Handle handle = FUSILLI_TRY(Handle::create(Backend::AMDGPU));
+    const Handle handle = FUSILLI_TRY(Handle::create(Backend::AMDGPU));
 #else
-    Handle handle = FUSILLI_TRY(Handle::create(Backend::CPU));
+    const Handle handle = FUSILLI_TRY(Handle::create(Backend::CPU));
 #endif
     FUSILLI_CHECK_ERROR(graph->compile(handle, /*remove=*/true));
     std::cout << FUSILLI_TRY(graph->readCompilationCacheFile(
@@ -119,7 +119,7 @@ test_conv_asm_emitter_x_nchw_w_kcrs_with_pad(const std::string &mode) {
 }
 
 int main(int argc, char **argv) {
-  std::string mode = (argc > 1) ? argv[1] : "default";
+  const std::string mode = (argc > 1) ? argv[1] : "default";
 
   auto status = test_conv_asm_emitter_x_nchw_w_kcrs_with_pad(mode);
   if (isError(status)) {

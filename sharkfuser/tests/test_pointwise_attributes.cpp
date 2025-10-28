@@ -14,7 +14,7 @@
 using namespace fusilli;
 
 TEST_CASE("PointwiseAttr default constructor", "[pointwise_attr]") {
-  PointwiseAttr attr;
+  const PointwiseAttr attr;
   REQUIRE(attr.getMode() == PointwiseAttr::Mode::NOT_SET);
   REQUIRE(attr.inputs.empty());
   REQUIRE(attr.outputs.empty());

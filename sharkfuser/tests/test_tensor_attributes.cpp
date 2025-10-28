@@ -62,8 +62,8 @@ TEST_CASE("TensorAttr setter templated overrides", "[TensorAttr]") {
   std::vector<int64_t> dimVec = {2, 3, 4};
   std::vector<int64_t> strideVec = {12, 4, 1};
 
-  std::span<int64_t> dimSpan(dimVec);
-  std::span<int64_t> strideSpan(strideVec);
+  std::span<int64_t> const dimSpan(dimVec);
+  std::span<int64_t> const strideSpan(strideVec);
 
   // Setters either take a const std::vector& or a type constrained template,
   // std::span should call the templated override.
@@ -180,7 +180,7 @@ TEST_CASE("TensorAttr validation edge cases", "[TensorAttr]") {
 
 TEST_CASE("TensorAttr scalar value variants", "[TensorAttr]") {
   SECTION("Float scalar") {
-    TensorAttr t(3.14f);
+    TensorAttr const t(3.14f);
     auto val = t.getScalarValue();
     REQUIRE(val.has_value());
     REQUIRE(std::holds_alternative<float>(val.value()));
@@ -191,7 +191,7 @@ TEST_CASE("TensorAttr scalar value variants", "[TensorAttr]") {
   }
 
   SECTION("Double scalar") {
-    TensorAttr t(2.718);
+    TensorAttr const t(2.718);
     auto val = t.getScalarValue();
     REQUIRE(val.has_value());
     REQUIRE(std::holds_alternative<double>(val.value()));
@@ -202,7 +202,7 @@ TEST_CASE("TensorAttr scalar value variants", "[TensorAttr]") {
   }
 
   SECTION("Int32 scalar") {
-    TensorAttr t(int32_t(-42));
+    TensorAttr const t(int32_t(-42));
     auto val = t.getScalarValue();
     REQUIRE(val.has_value());
     REQUIRE(std::holds_alternative<int32_t>(val.value()));
@@ -213,7 +213,7 @@ TEST_CASE("TensorAttr scalar value variants", "[TensorAttr]") {
   }
 
   SECTION("Int64 scalar") {
-    TensorAttr t(int64_t(-123456789));
+    TensorAttr const t(int64_t(-123456789));
     auto val = t.getScalarValue();
     REQUIRE(val.has_value());
     REQUIRE(std::holds_alternative<int64_t>(val.value()));
@@ -318,18 +318,18 @@ TEST_CASE("Permute order utils", "[TensorAttr utils]") {
 TEST_CASE("computeBroadcastShapes", "[TensorAttr utils]") {
   SECTION("Empty inputs") {
     SECTION("All shapes empty") {
-      std::vector<std::vector<int64_t>> shapes = {{}, {}, {}};
+      std::vector<std::vector<int64_t>> const shapes = {{}, {}, {}};
       auto result = computeBroadcastShape(shapes);
-      ErrorObject err = result;
+      ErrorObject const err = result;
       REQUIRE(isError(err));
       REQUIRE(err.getCode() == ErrorCode::InvalidAttribute);
       REQUIRE(err.getMessage() == "All input shapes are empty");
     }
 
     SECTION("No shapes") {
-      std::vector<std::vector<int64_t>> shapes = {};
+      std::vector<std::vector<int64_t>> const shapes = {};
       auto result = computeBroadcastShape(shapes);
-      ErrorObject err = result;
+      ErrorObject const err = result;
       REQUIRE(isError(err));
       REQUIRE(err.getCode() == ErrorCode::InvalidAttribute);
       REQUIRE(err.getMessage() == "All input shapes are empty");
@@ -338,14 +338,14 @@ TEST_CASE("computeBroadcastShapes", "[TensorAttr utils]") {
 
   SECTION("Single shape") {
     SECTION("Single 1D shape") {
-      std::vector<std::vector<int64_t>> shapes = {{5}};
+      std::vector<std::vector<int64_t>> const shapes = {{5}};
       auto result = computeBroadcastShape(shapes);
       FUSILLI_REQUIRE_OK(result);
       REQUIRE(*result == std::vector<int64_t>{5});
     }
 
     SECTION("Single 4D shape") {
-      std::vector<std::vector<int64_t>> shapes = {{16, 32, 64, 128}};
+      std::vector<std::vector<int64_t>> const shapes = {{16, 32, 64, 128}};
       auto result = computeBroadcastShape(shapes);
       FUSILLI_REQUIRE_OK(result);
       REQUIRE(*result == std::vector<int64_t>{16, 32, 64, 128});
@@ -354,14 +354,14 @@ TEST_CASE("computeBroadcastShapes", "[TensorAttr utils]") {
 
   SECTION("Identical shapes") {
     SECTION("Two identical shapes") {
-      std::vector<std::vector<int64_t>> shapes = {{3, 4}, {3, 4}};
+      std::vector<std::vector<int64_t>> const shapes = {{3, 4}, {3, 4}};
       auto result = computeBroadcastShape(shapes);
       FUSILLI_REQUIRE_OK(result);
       REQUIRE(*result == std::vector<int64_t>{3, 4});
     }
 
     SECTION("Three identical shapes") {
-      std::vector<std::vector<int64_t>> shapes = {
+      std::vector<std::vector<int64_t>> const shapes = {
           {2, 3, 4}, {2, 3, 4}, {2, 3, 4}};
       auto result = computeBroadcastShape(shapes);
       FUSILLI_REQUIRE_OK(result);
@@ -371,21 +371,21 @@ TEST_CASE("computeBroadcastShapes", "[TensorAttr utils]") {
 
   SECTION("Different rank shapes") {
     SECTION("1D + 2D") {
-      std::vector<std::vector<int64_t>> shapes = {{4}, {3, 4}};
+      std::vector<std::vector<int64_t>> const shapes = {{4}, {3, 4}};
       auto result = computeBroadcastShape(shapes);
       FUSILLI_REQUIRE_OK(result);
       REQUIRE(*result == std::vector<int64_t>{3, 4});
     }
 
     SECTION("2D + 3D") {
-      std::vector<std::vector<int64_t>> shapes = {{4, 5}, {2, 4, 5}};
+      std::vector<std::vector<int64_t>> const shapes = {{4, 5}, {2, 4, 5}};
       auto result = computeBroadcastShape(shapes);
       FUSILLI_REQUIRE_OK(result);
       REQUIRE(*result == std::vector<int64_t>{2, 4, 5});
     }
 
     SECTION("1D + 2D + 3D") {
-      std::vector<std::vector<int64_t>> shapes = {{5}, {3, 5}, {2, 3, 5}};
+      std::vector<std::vector<int64_t>> const shapes = {{5}, {3, 5}, {2, 3, 5}};
       auto result = computeBroadcastShape(shapes);
       FUSILLI_REQUIRE_OK(result);
       REQUIRE(*result == std::vector<int64_t>{2, 3, 5});
@@ -394,22 +394,22 @@ TEST_CASE("computeBroadcastShapes", "[TensorAttr utils]") {
 
   SECTION("Unit dimension broadcasting") {
     SECTION("Broadcasting with 1s") {
-      std::vector<std::vector<int64_t>> shapes = {{1, 4}, {3, 1}, {3, 1}};
+      std::vector<std::vector<int64_t>> const shapes = {{1, 4}, {3, 1}, {3, 1}};
       auto result = computeBroadcastShape(shapes);
       FUSILLI_REQUIRE_OK(result);
       REQUIRE(*result == std::vector<int64_t>{3, 4});
     }
 
     SECTION("Complex broadcasting - PyTorch style") {
-      std::vector<std::vector<int64_t>> shapes = {{16, 32, 64, 128},
-                                                  {1, 32, 1, 1}};
+      std::vector<std::vector<int64_t>> const shapes = {{16, 32, 64, 128},
+                                                        {1, 32, 1, 1}};
       auto result = computeBroadcastShape(shapes);
       FUSILLI_REQUIRE_OK(result);
       REQUIRE(*result == std::vector<int64_t>{16, 32, 64, 128});
     }
 
     SECTION("Single element tensors") {
-      std::vector<std::vector<int64_t>> shapes = {{1}, {1}};
+      std::vector<std::vector<int64_t>> const shapes = {{1}, {1}};
       auto result = computeBroadcastShape(shapes);
       FUSILLI_REQUIRE_OK(result);
       REQUIRE(*result == std::vector<int64_t>{1});
@@ -418,26 +418,26 @@ TEST_CASE("computeBroadcastShapes", "[TensorAttr utils]") {
 
   SECTION("Incompatible dimensions") {
     SECTION("Incompatible dimensions") {
-      std::vector<std::vector<int64_t>> shapes = {{3}, {4}};
+      std::vector<std::vector<int64_t>> const shapes = {{3}, {4}};
       auto result = computeBroadcastShape(shapes);
-      ErrorObject err = result;
+      ErrorObject const err = result;
       REQUIRE(isError(err));
       REQUIRE(err.getCode() == ErrorCode::InvalidAttribute);
       REQUIRE(err.getMessage() == "Cannot broadcast two non unit dimensions");
     }
 
     SECTION("Complex incompatible case") {
-      std::vector<std::vector<int64_t>> shapes = {{2, 3, 4}, {2, 5, 4}};
+      std::vector<std::vector<int64_t>> const shapes = {{2, 3, 4}, {2, 5, 4}};
       auto result = computeBroadcastShape(shapes);
-      ErrorObject err = result;
+      ErrorObject const err = result;
       REQUIRE(isError(err));
       REQUIRE(err.getMessage() == "Cannot broadcast two non unit dimensions");
     }
 
     SECTION("Unit vs non-unit mismatch") {
-      std::vector<std::vector<int64_t>> shapes = {{1, 3}, {2, 4}};
+      std::vector<std::vector<int64_t>> const shapes = {{1, 3}, {2, 4}};
       auto result = computeBroadcastShape(shapes);
-      ErrorObject err = result;
+      ErrorObject const err = result;
       REQUIRE(isError(err));
       REQUIRE(err.getMessage() == "Cannot broadcast two non unit dimensions");
     }
@@ -445,7 +445,7 @@ TEST_CASE("computeBroadcastShapes", "[TensorAttr utils]") {
 
   SECTION("Mixed empty and non-empty") {
     SECTION("Empty shapes filtered out") {
-      std::vector<std::vector<int64_t>> shapes = {
+      std::vector<std::vector<int64_t>> const shapes = {
           {}, {3, 4}, {1}, {3, 1}, {1, 4}};
       auto result = computeBroadcastShape(shapes);
       FUSILLI_REQUIRE_OK(result);
@@ -453,7 +453,7 @@ TEST_CASE("computeBroadcastShapes", "[TensorAttr utils]") {
     }
 
     SECTION("All empty except one") {
-      std::vector<std::vector<int64_t>> shapes = {{}, {}, {5, 6, 7}, {}};
+      std::vector<std::vector<int64_t>> const shapes = {{}, {}, {5, 6, 7}, {}};
       auto result = computeBroadcastShape(shapes);
       FUSILLI_REQUIRE_OK(result);
       REQUIRE(*result == std::vector<int64_t>{5, 6, 7});

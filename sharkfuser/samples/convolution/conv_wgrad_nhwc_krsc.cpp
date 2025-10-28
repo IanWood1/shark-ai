@@ -19,7 +19,7 @@ using namespace fusilli;
 
 TEST_CASE("Convolution wgrad; DY/X (NHWC), DW (KRSC); 1x1; no padding",
           "[conv][graph]") {
-  int64_t n = 4, c = 8, h = 8, w = 8, k = 16, r = 1, s = 1;
+  const int64_t n = 4, c = 8, h = 8, w = 8, k = 16, r = 1, s = 1;
 
   auto buildNewGraph = [=](const Handle &handle) {
     auto graph = std::make_shared<Graph>();

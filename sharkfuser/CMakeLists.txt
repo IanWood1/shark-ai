@@ -118,6 +118,16 @@ if(FUSILLI_CODE_COVERAGE)
   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Debug build" FORCE)
 endif()
 
+# Enable after test/samples to avoid catch2 errors.
+if(FUSILLI_ENABLE_CLANG_TIDY)
+  set(CMAKE_CXX_CLANG_TIDY
+    clang-tidy;
+    -warnings-as-errors=*;
+    --config-file=${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy;
+  )
+endif()
+
+
 # Option for AMDGPU backend
 option(FUSILLI_SYSTEMS_AMDGPU "Builds for AMD GPU systems" ON)
 message(STATUS "Fusilli supported systems:")
@@ -157,15 +167,6 @@ if(FUSILLI_BUILD_TESTS)
 
   # Activate CTest integration
   enable_testing()
-endif()
-
-# Enable after test/samples to avoid catch2 errors.
-if(FUSILLI_ENABLE_CLANG_TIDY)
-  set(CMAKE_CXX_CLANG_TIDY
-    clang-tidy;
-    -warnings-as-errors=*;
-    --config-file=${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy;
-  )
 endif()
 
 # Build benchmarks

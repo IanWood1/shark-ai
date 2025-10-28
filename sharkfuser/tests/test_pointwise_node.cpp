@@ -17,30 +17,30 @@ using namespace fusilli;
 
 TEST_CASE("PointwiseNode getName correctly propagates the attribute name",
           "[pointwise_node]") {
-  Context ctx;
+  const Context ctx;
   PointwiseAttr attr;
   attr.setName("foo_pointwise");
 
-  PointwiseNode node(std::move(attr), ctx);
+  PointwiseNode const node(std::move(attr), ctx);
   REQUIRE(node.getName() == "foo_pointwise");
 }
 
 TEST_CASE("PointwiseNode getType returns correct type", "[pointwise_node]") {
-  Context ctx;
+  const Context ctx;
   PointwiseAttr attr;
   attr.setMode(PointwiseAttr::Mode::RELU_FWD);
 
-  PointwiseNode node(std::move(attr), ctx);
+  PointwiseNode const node(std::move(attr), ctx);
   REQUIRE(node.getType() == INode::Type::Pointwise);
 }
 
 TEST_CASE("PointwiseNode preValidateNode detects missing mode",
           "[pointwise_node]") {
-  Context ctx;
+  const Context ctx;
 
   SECTION("Mode not set") {
     PointwiseAttr attr;
-    PointwiseNode node(std::move(attr), ctx);
+    PointwiseNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -51,7 +51,7 @@ TEST_CASE("PointwiseNode preValidateNode detects missing mode",
   SECTION("Mode set to RELU_FWD without inputs") {
     PointwiseAttr attr;
     attr.setMode(PointwiseAttr::Mode::RELU_FWD);
-    PointwiseNode node(std::move(attr), ctx);
+    PointwiseNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -64,7 +64,7 @@ TEST_CASE("PointwiseNode preValidateNode detects missing mode",
     attr.setMode(PointwiseAttr::Mode::ADD);
     auto in0 = std::make_shared<TensorAttr>(1.0f);
     attr.setIN_0(in0);
-    PointwiseNode node(std::move(attr), ctx);
+    PointwiseNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -78,7 +78,7 @@ TEST_CASE("PointwiseNode preValidateNode detects missing mode",
     auto in0 = std::make_shared<TensorAttr>(1.0f);
     auto in1 = std::make_shared<TensorAttr>(2.0f);
     attr.setIN_0(in0).setIN_1(in1);
-    PointwiseNode node(std::move(attr), ctx);
+    PointwiseNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -94,7 +94,7 @@ TEST_CASE("PointwiseNode preValidateNode detects missing mode",
     auto in1 = std::make_shared<TensorAttr>(2.0f);
     auto in2 = std::make_shared<TensorAttr>(3.0f);
     attr.setIN_0(in0).setIN_1(in1).setIN_2(in2);
-    PointwiseNode node(std::move(attr), ctx);
+    PointwiseNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -104,7 +104,7 @@ TEST_CASE("PointwiseNode preValidateNode detects missing mode",
 }
 
 TEST_CASE("PointwiseNode with tensor attributes", "[pointwise_node]") {
-  Context ctx;
+  Context const ctx;
   PointwiseAttr attr;
 
   attr.setMode(PointwiseAttr::Mode::RELU_FWD);
@@ -115,7 +115,7 @@ TEST_CASE("PointwiseNode with tensor attributes", "[pointwise_node]") {
 
   attr.setIN_0(in0).setIN_1(in1).setOUT_0(out);
 
-  PointwiseNode node(std::move(attr), ctx);
+  PointwiseNode const node(std::move(attr), ctx);
 
   // Verify the node has access to the attributes
   REQUIRE(node.pointwiseAttr.getIN_0() == in0);
@@ -162,10 +162,10 @@ TEST_CASE("PointwiseNode with ADD mode broadcast", "[pointwise_node]") {
   PointwiseAttr attr;
   attr.setMode(PointwiseAttr::Mode::ADD);
 
-  int64_t dim0 = 16;
-  int64_t dim1 = 32;
-  int64_t dim2 = 64;
-  int64_t dim3 = 128;
+  const int64_t dim0 = 16;
+  const int64_t dim1 = 32;
+  const int64_t dim2 = 64;
+  const int64_t dim3 = 128;
 
   auto in0 = std::make_shared<TensorAttr>();
   in0->setDim({dim0, dim1, dim2, dim3})
@@ -193,8 +193,8 @@ TEST_CASE("PointwiseNode with ADD mode invalid broadcast", "[pointwise_node]") {
   PointwiseAttr attr;
   attr.setMode(PointwiseAttr::Mode::ADD);
 
-  int64_t dim0 = 16;
-  int64_t dim1 = 32;
+  int64_t const dim0 = 16;
+  int64_t const dim1 = 32;
 
   auto in0 = std::make_shared<TensorAttr>();
   in0->setDim({dim0}).setStride({1});
@@ -206,7 +206,7 @@ TEST_CASE("PointwiseNode with ADD mode invalid broadcast", "[pointwise_node]") {
 
   PointwiseNode node(std::move(attr), ctx);
   FUSILLI_REQUIRE_OK(node.preValidateNode());
-  ErrorObject status = node.inferPropertiesNode();
+  ErrorObject const status = node.inferPropertiesNode();
   REQUIRE(isError(status));
   REQUIRE(status.getCode() == ErrorCode::InvalidAttribute);
   REQUIRE(status.getMessage() == "Cannot broadcast two non unit dimensions");
@@ -218,8 +218,8 @@ TEST_CASE("PointwiseNode with ADD mode double broadcast", "[pointwise_node]") {
   PointwiseAttr attr;
   attr.setMode(PointwiseAttr::Mode::ADD);
 
-  int64_t dim0 = 16;
-  int64_t dim1 = 32;
+  int64_t const dim0 = 16;
+  int64_t const dim1 = 32;
 
   auto in0 = std::make_shared<TensorAttr>();
   in0->setDim({dim0, 1}).setStride({1, dim0});

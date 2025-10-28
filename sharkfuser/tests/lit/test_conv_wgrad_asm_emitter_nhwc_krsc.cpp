@@ -89,7 +89,7 @@ using namespace fusilli;
 
 ErrorObject
 test_conv_wgrad_asm_emitter_dy_nhwc_x_nhwc(const std::string &mode) {
-  int64_t n = 16, c = 128, h = 64, w = 32, k = 256, r = 1, s = 1;
+  const int64_t n = 16, c = 128, h = 64, w = 32, k = 256, r = 1, s = 1;
   auto graph = std::make_shared<Graph>();
   graph->setName("conv_wgrad_asm_emitter_dy_nhwc_x_nhwc");
   graph->setIODataType(DataType::Float).setComputeDataType(DataType::Float);
@@ -121,7 +121,7 @@ test_conv_wgrad_asm_emitter_dy_nhwc_x_nhwc(const std::string &mode) {
   }
 
   if (mode == "stats") {
-    Handle handle = FUSILLI_TRY(Handle::create(Backend::CPU));
+    const Handle handle = FUSILLI_TRY(Handle::create(Backend::CPU));
     FUSILLI_CHECK_ERROR(graph->compile(handle, /*remove=*/true));
     std::cout << FUSILLI_TRY(graph->readCompilationCacheFile(
                      CachedAssetsType::Statistics))
@@ -132,7 +132,7 @@ test_conv_wgrad_asm_emitter_dy_nhwc_x_nhwc(const std::string &mode) {
 }
 
 int main(int argc, char **argv) {
-  std::string mode = (argc > 1) ? argv[1] : "default";
+  const std::string mode = (argc > 1) ? argv[1] : "default";
 
   auto status = test_conv_wgrad_asm_emitter_dy_nhwc_x_nhwc(mode);
   if (isError(status)) {

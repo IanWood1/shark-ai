@@ -51,7 +51,7 @@ TEST_CASE("CacheFile::create remove = true", "[CacheFile]") {
     FUSILLI_REQUIRE_OK(cf2.write("content2"));
 
     // Store paths before move.
-    std::filesystem::path path1 = cf1.path;
+    std::filesystem::path const path1 = cf1.path;
     std::filesystem::path path2 = cf2.path;
 
     // Verify both files exist before move.
@@ -84,7 +84,7 @@ TEST_CASE("CacheFile::create remove = false", "[CacheFile]") {
   SECTION("cache persistence") {
     std::filesystem::path cacheFilePath;
     {
-      CacheFile cf = FUSILLI_REQUIRE_UNWRAP(CacheFile::create(
+      CacheFile const cf = FUSILLI_REQUIRE_UNWRAP(CacheFile::create(
           /*graphName=*/"graph", /*filename=*/"test_temp_file",
           /*remove=*/false));
 
@@ -114,7 +114,7 @@ TEST_CASE("CacheFile::create remove = false", "[CacheFile]") {
     FUSILLI_REQUIRE_OK(cf2.write("content2"));
 
     // Store paths before move.
-    std::filesystem::path path1 = cf1.path;
+    std::filesystem::path const path1 = cf1.path;
     std::filesystem::path path2 = cf2.path;
 
     // Verify both files exist before move.
@@ -145,9 +145,10 @@ TEST_CASE("CacheFile::create remove = false", "[CacheFile]") {
 
 TEST_CASE("CacheFile::open", "[CacheFile]") {
   // Try to open a file that doesn't exist.
-  ErrorOr<CacheFile> failOpen = CacheFile::open("test_graph", "test_file.txt");
+  ErrorOr<CacheFile> const failOpen =
+      CacheFile::open("test_graph", "test_file.txt");
   REQUIRE(isError(failOpen));
-  ErrorObject err(failOpen);
+  ErrorObject const err(failOpen);
   REQUIRE(err.getCode() == ErrorCode::FileSystemFailure);
   REQUIRE_THAT(err.getMessage(),
                Catch::Matchers::ContainsSubstring("File does not exist"));
@@ -160,7 +161,7 @@ TEST_CASE("CacheFile::open", "[CacheFile]") {
   FUSILLI_REQUIRE_OK(cacheFile.write("test data"));
 
   // Now open the existing file.
-  CacheFile opened =
+  CacheFile const opened =
       FUSILLI_REQUIRE_UNWRAP(CacheFile::open("test_graph", "test_file.txt"));
 
   // Verify we can read the content.
@@ -173,12 +174,12 @@ TEST_CASE("CacheFile::open", "[CacheFile]") {
 
 TEST_CASE("CacheFile directory sanitization", "[CacheFile]") {
   // Test that special characters in graph name are sanitized.
-  CacheFile cacheFile = FUSILLI_REQUIRE_UNWRAP(
+  CacheFile const cacheFile = FUSILLI_REQUIRE_UNWRAP(
       CacheFile::create(/*graphName=*/"test / gr@ph!",
                         /*filename=*/"test_file.txt", /*remove=*/true));
 
   // Extract the sanitized directory name from the path.
-  std::filesystem::path dirPath = cacheFile.path.parent_path();
+  std::filesystem::path const dirPath = cacheFile.path.parent_path();
   std::string actualDirName = dirPath.filename().string();
 
   // Spaces should be replaced with underscores, special chars removed.

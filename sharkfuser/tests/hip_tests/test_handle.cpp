@@ -35,7 +35,7 @@ TEST_CASE("Handle creation with deviceId", "[handle][hip_tests]") {
     };
 
     // Create handle.
-    Handle handle = FUSILLI_REQUIRE_UNWRAP(
+    Handle const handle = FUSILLI_REQUIRE_UNWRAP(
         Handle::create(Backend::AMDGPU, /*deviceId=*/deviceId));
     REQUIRE(static_cast<iree_hal_device_t *>(handle) != nullptr);
 
@@ -70,7 +70,7 @@ TEST_CASE("Handle creation with stream and deviceId", "[handle][hip_tests]") {
     HIP_REQUIRE_SUCCESS(hipStreamCreate(&stream));
 
     // Create a handle.
-    Handle handle = FUSILLI_REQUIRE_UNWRAP(
+    Handle const handle = FUSILLI_REQUIRE_UNWRAP(
         Handle::create(Backend::AMDGPU, /*deviceId=*/deviceId,
                        /*stream=*/reinterpret_cast<uintptr_t>(stream)));
     REQUIRE(static_cast<iree_hal_device_t *>(handle) != nullptr);
@@ -107,10 +107,10 @@ TEST_CASE("Handle creation with stream and deviceId", "[handle][hip_tests]") {
     HIP_REQUIRE_SUCCESS(hipStreamCreate(&stream2));
 
     // Create handles.
-    Handle handle1 = FUSILLI_REQUIRE_UNWRAP(
+    Handle const handle1 = FUSILLI_REQUIRE_UNWRAP(
         Handle::create(Backend::AMDGPU, /*deviceId=*/deviceId,
                        /*stream=*/reinterpret_cast<uintptr_t>(stream1)));
-    Handle handle2 = FUSILLI_REQUIRE_UNWRAP(
+    Handle const handle2 = FUSILLI_REQUIRE_UNWRAP(
         Handle::create(Backend::AMDGPU, /*deviceId=*/deviceId,
                        /*stream=*/reinterpret_cast<uintptr_t>(stream2)));
     REQUIRE(static_cast<iree_hal_device_t *>(handle1) != nullptr);

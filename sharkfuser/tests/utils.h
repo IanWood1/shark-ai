@@ -37,7 +37,7 @@
 //   }
 #define FUSILLI_REQUIRE_OK(expr)                                               \
   do {                                                                         \
-    fusilli::ErrorObject _error = (expr);                                      \
+    const fusilli::ErrorObject _error = (expr);                                \
     if (isError(_error)) {                                                     \
       FUSILLI_LOG_LABEL_RED("ERROR: " << _error << " ");                       \
       FUSILLI_LOG_ENDL(#expr << " at " << __FILE__ << ":" << __LINE__);        \

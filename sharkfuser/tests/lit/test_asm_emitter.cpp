@@ -15,10 +15,10 @@
 using namespace fusilli;
 
 void testGetListOfIntOpsAsm() {
-  std::vector<int64_t> vals{1, 2, 3};
-  std::string prefix = "stride";
-  std::string suffix = "conv";
-  std::string asmStr = getListOfIntOpsAsm(vals, prefix, suffix);
+  const std::vector<int64_t> vals{1, 2, 3};
+  const std::string prefix = "stride";
+  const std::string suffix = "conv";
+  const std::string asmStr = getListOfIntOpsAsm(vals, prefix, suffix);
 
   // clang-format off
   // CHECK:  %stride_val_0_conv = torch.constant.int 1

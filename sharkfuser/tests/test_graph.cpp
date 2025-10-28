@@ -102,7 +102,7 @@ static Graph testGraph(bool validate) {
       .setComputeDataType(DataType::Float)
       .setIntermediateDataType(DataType::Float);
 
-  int64_t n = 16, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
+  const int64_t n = 16, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
   auto xT = g.tensor(TensorAttr()
                          .setName("image")
                          .setDim({n, c, h, w})
@@ -145,14 +145,15 @@ TEST_CASE("Graph asm_emitter requires validation to be run first", "[graph]") {
 
 TEST_CASE("Graph `getCompiledArtifact` cache generation and invalidation",
           "[graph]") {
-  Handle cpuHandle = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::CPU));
+  Handle const cpuHandle = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::CPU));
 #ifdef FUSILLI_ENABLE_AMDGPU
-  Handle gpuHandle = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::AMDGPU));
+  Handle const gpuHandle =
+      FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::AMDGPU));
 #endif
 
   Graph g = testGraph(/*validate=*/true);
 
-  std::string generatedAsm = FUSILLI_REQUIRE_UNWRAP(g.emitAsm());
+  std::string const generatedAsm = FUSILLI_REQUIRE_UNWRAP(g.emitAsm());
 
   // Cache should be empty, compilation artifacts should be generated.
   std::optional<bool> reCompiled = std::nullopt;
@@ -210,7 +211,7 @@ TEST_CASE("Graph `getCompiledArtifact` cache generation and invalidation",
 TEST_CASE("Graph `getCompiledArtifact` should not read cached items from "
           "other/previous Graph instances",
           "[graph]") {
-  Handle handle = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::CPU));
+  Handle const handle = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::CPU));
 
   std::string generatedAsm;
   {
@@ -236,7 +237,7 @@ TEST_CASE("Graph `getCompiledArtifact` should not read cached items from "
   Graph g = testGraph(/*validate=*/true);
 
   // Check that the generated asm matches the cache.
-  CacheFile asmCache = FUSILLI_REQUIRE_UNWRAP(
+  CacheFile const asmCache = FUSILLI_REQUIRE_UNWRAP(
       CacheFile::open(g.getName(), IREE_COMPILE_INPUT_FILENAME));
   REQUIRE(FUSILLI_REQUIRE_UNWRAP(asmCache.read()) == generatedAsm);
 
@@ -249,12 +250,12 @@ TEST_CASE("Graph `getCompiledArtifact` should not read cached items from "
 }
 
 TEST_CASE("Graph `getCompiledArtifact` invalid input IR", "[graph]") {
-  Handle handle = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::CPU));
-  std::string graphName;
+  Handle const handle = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::CPU));
+  std::string const graphName;
   {
     Graph g;
     g.setName("invalid_input_ir");
-    ErrorObject err =
+    ErrorObject const err =
         g.getCompiledArtifact(handle, "invalid mlir", /*remove=*/true);
     REQUIRE(isError(err));
     REQUIRE(err.getCode() == ErrorCode::CompileFailure);
@@ -266,7 +267,7 @@ TEST_CASE("Graph `getCompiledArtifact` invalid input IR", "[graph]") {
 }
 
 TEST_CASE("Graph `compile` method fails without validation", "[graph]") {
-  Handle handle = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::CPU));
+  Handle const handle = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::CPU));
 
   Graph g = testGraph(/*validate=*/false);
 
@@ -288,11 +289,11 @@ TEST_CASE("Graph `compile` recompilations with changed handle", "[graph]") {
   const char *cacheDir = std::getenv("FUSILLI_CACHE_DIR");
   if (!cacheDir)
     cacheDir = std::getenv("HOME");
-  std::filesystem::path cmdPath = std::filesystem::path(cacheDir) / ".cache" /
-                                  "fusilli" / g.getName() /
-                                  "iree-compile-command.txt";
+  std::filesystem::path const cmdPath = std::filesystem::path(cacheDir) /
+                                        ".cache" / "fusilli" / g.getName() /
+                                        "iree-compile-command.txt";
 
-  Handle cpuHandle = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::CPU));
+  Handle const cpuHandle = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::CPU));
   FUSILLI_REQUIRE_OK(g.compile(cpuHandle, /*remove=*/true));
 
   std::string cpuCmd;
@@ -303,7 +304,8 @@ TEST_CASE("Graph `compile` recompilations with changed handle", "[graph]") {
   REQUIRE(!cpuCmd.empty());
 
 #ifdef FUSILLI_ENABLE_AMDGPU
-  Handle gpuHandle = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::AMDGPU));
+  Handle const gpuHandle =
+      FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::AMDGPU));
   FUSILLI_REQUIRE_OK(g.compile(gpuHandle, /*remove=*/true));
 
   std::string gpuCmd;
@@ -319,7 +321,7 @@ TEST_CASE("Graph `compile` recompilations with changed handle", "[graph]") {
 }
 
 TEST_CASE("Graph `execute`", "[graph]") {
-  int64_t n = 16, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
+  const int64_t n = 16, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
 
   auto buildNewGraph = [=](const Handle &handle) {
     auto graph = std::make_shared<Graph>();
@@ -367,7 +369,7 @@ TEST_CASE("Graph `execute`", "[graph]") {
         FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::AMDGPU)));
   }
 #endif
-  Handle &handle = *handlePtr;
+  Handle const &handle = *handlePtr;
 
   // Build graph for the given handle (device), validate and compile it.
   auto [graph, X, W, Y] = buildNewGraph(handle);

@@ -345,7 +345,7 @@ inline ErrorObject Buffer::read(const Handle &handle, std::vector<T> &outData) {
   iree_hal_buffer_t *buffer = iree_hal_buffer_view_buffer(getBufferView());
 
   // Resize output vector `outData` based on buffer size.
-  iree_device_size_t byteLength =
+  const iree_device_size_t byteLength =
       iree_hal_buffer_view_byte_length(getBufferView());
   outData.resize(byteLength / sizeof(T));
 

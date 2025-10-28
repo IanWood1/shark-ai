@@ -28,10 +28,10 @@ TEST_CASE("Buffer allocation, move semantics and lifetime", "[buffer]") {
         FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::AMDGPU)));
   }
 #endif
-  Handle &handle = *handlePtr;
+  Handle const &handle = *handlePtr;
 
   // Allocate a buffer of shape [2, 3] with all elements set to 1.0f (float).
-  std::vector<float> data(6, 1.0f);
+  const std::vector<float> data(6, 1.0f);
   Buffer buf = FUSILLI_REQUIRE_UNWRAP(
       Buffer::allocate(handle, castToSizeT({2, 3}), data));
   REQUIRE(buf != nullptr);
@@ -70,10 +70,10 @@ TEST_CASE("Buffer import and lifetimes", "[buffer]") {
         FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::AMDGPU)));
   }
 #endif
-  Handle &handle = *handlePtr;
+  Handle const &handle = *handlePtr;
 
   // Allocate a buffer of shape [2, 3] with all elements set to half(1.0f).
-  std::vector<half> data(6, half(1.0f));
+  const std::vector<half> data(6, half(1.0f));
   Buffer buf = FUSILLI_REQUIRE_UNWRAP(
       Buffer::allocate(handle, castToSizeT({2, 3}), data));
   REQUIRE(buf != nullptr);
@@ -112,7 +112,7 @@ TEST_CASE("Buffer errors", "[buffer]") {
   SECTION("Import NULL buffer") {
     // Importing a NULL buffer view should fail.
     iree_hal_buffer_view_t *nullBuf = nullptr;
-    ErrorObject status = Buffer::import(nullBuf);
+    const ErrorObject status = Buffer::import(nullBuf);
     REQUIRE(isError(status));
     REQUIRE(status.getCode() == ErrorCode::RuntimeFailure);
     REQUIRE(status.getMessage() ==
@@ -121,17 +121,17 @@ TEST_CASE("Buffer errors", "[buffer]") {
 
   SECTION("Reading into a non-empty vector") {
     // Reading into a non-empty vector should fail.
-    Handle handle = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::CPU));
+    const Handle handle = FUSILLI_REQUIRE_UNWRAP(Handle::create(Backend::CPU));
 
     // Allocate a buffer of shape [2, 3] with all elements set to 1.0f (float).
-    std::vector<float> data(6, 0.0f);
+    const std::vector<float> data(6, 0.0f);
     Buffer buf = FUSILLI_REQUIRE_UNWRAP(
         Buffer::allocate(handle, castToSizeT({2, 3}), data));
 
     // Read buffer into a non-empty vector.
     std::vector<float> result(6, 1.0f);
     REQUIRE(!result.empty());
-    ErrorObject status = buf.read(handle, result);
+    const ErrorObject status = buf.read(handle, result);
     REQUIRE(isError(status));
     REQUIRE(status.getCode() == ErrorCode::RuntimeFailure);
     REQUIRE(status.getMessage() ==

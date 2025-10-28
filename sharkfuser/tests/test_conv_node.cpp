@@ -17,21 +17,21 @@ using namespace fusilli;
 
 TEST_CASE("ConvFPropNode getName correctly propagates the attribute name",
           "[conv_node]") {
-  Context ctx;
+  Context const ctx;
   ConvFPropAttr attr;
   attr.setName("foo_conv");
 
-  ConvFPropNode node(std::move(attr), ctx);
+  ConvFPropNode const node(std::move(attr), ctx);
   REQUIRE(node.getName() == "foo_conv");
 }
 
 TEST_CASE("ConvFPropNode preValidateNode detects missing attributes",
           "[conv_node]") {
-  Context ctx;
+  Context const ctx;
   ConvFPropAttr attr;
 
   SECTION("Padding missing") {
-    ConvFPropNode node(std::move(attr), ctx);
+    ConvFPropNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -41,7 +41,7 @@ TEST_CASE("ConvFPropNode preValidateNode detects missing attributes",
 
   SECTION("Stride missing") {
     attr.setPadding({0});
-    ConvFPropNode node(std::move(attr), ctx);
+    ConvFPropNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -51,7 +51,7 @@ TEST_CASE("ConvFPropNode preValidateNode detects missing attributes",
 
   SECTION("Dilation missing") {
     attr.setPadding({0}).setStride({1});
-    ConvFPropNode node(std::move(attr), ctx);
+    ConvFPropNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -61,7 +61,7 @@ TEST_CASE("ConvFPropNode preValidateNode detects missing attributes",
 
   SECTION("Input missing") {
     attr.setPadding({0}).setStride({1}).setDilation({1});
-    ConvFPropNode node(std::move(attr), ctx);
+    ConvFPropNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -73,7 +73,7 @@ TEST_CASE("ConvFPropNode preValidateNode detects missing attributes",
     attr.setPadding({0}).setStride({1}).setDilation({1});
     attr.setX(std::make_shared<TensorAttr>(
         TensorAttr().setDim({1, 1, 1}).setStride({1, 1, 1})));
-    ConvFPropNode node(std::move(attr), ctx);
+    ConvFPropNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -87,7 +87,7 @@ TEST_CASE("ConvFPropNode preValidateNode detects missing attributes",
         TensorAttr().setDim({1, 1, 1}).setStride({1, 1, 1})));
     attr.setW(std::make_shared<TensorAttr>(
         TensorAttr().setDim({1, 1, 1}).setStride({1, 1, 1})));
-    ConvFPropNode node(std::move(attr), ctx);
+    ConvFPropNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -103,7 +103,7 @@ TEST_CASE("ConvFPropNode preValidateNode detects missing attributes",
         TensorAttr().setDim({1, 1, 1}).setStride({1, 1, 1})));
     attr.setY(std::make_shared<TensorAttr>(
         TensorAttr().setDim({1, 1, 1}).setStride({1, 1, 1})));
-    ConvFPropNode node(std::move(attr), ctx);
+    ConvFPropNode const node(std::move(attr), ctx);
 
     FUSILLI_REQUIRE_OK(node.preValidateNode());
   }
@@ -111,7 +111,7 @@ TEST_CASE("ConvFPropNode preValidateNode detects missing attributes",
 
 TEST_CASE("ConvFPropNode inferPropertiesNode (1D) when Y is fully specified",
           "[conv_node]") {
-  Context ctx;
+  Context const ctx;
   ConvFPropAttr attr;
 
   attr.setPadding({0, 0}).setStride({1, 1}).setDilation({1, 1});
@@ -131,7 +131,7 @@ TEST_CASE("ConvFPropNode inferPropertiesNode (1D) when Y is fully specified",
 
 TEST_CASE("ConvFPropNode inferPropertiesNode (1D) when Y is under specified",
           "[conv_node]") {
-  Context ctx;
+  Context const ctx;
   ConvFPropAttr attr;
 
   attr.setPadding({0, 0}).setStride({1, 1}).setDilation({1, 1});
@@ -151,10 +151,10 @@ TEST_CASE("ConvFPropNode inferPropertiesNode (1D) when Y is under specified",
 
 TEST_CASE("ConvFPropNode inferPropertiesNode (4D) when Y is under specified",
           "[conv_node]") {
-  Context ctx;
+  Context const ctx;
   ConvFPropAttr attr;
 
-  int64_t n = 16, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
+  const int64_t n = 16, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
 
   attr.setPadding({0, 0}).setStride({1, 1}).setDilation({1, 1});
 
@@ -179,10 +179,10 @@ TEST_CASE("ConvFPropNode inferPropertiesNode (4D) when Y is under specified",
 
 TEST_CASE("ConvFPropNode preValidate checks on input stride validity",
           "[conv_node]") {
-  Context ctx;
+  Context const ctx;
   ConvFPropAttr attr;
 
-  int64_t n = 16, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
+  const int64_t n = 16, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
 
   attr.setPadding({0, 0}).setStride({1, 1}).setDilation({1, 1});
 
@@ -200,7 +200,7 @@ TEST_CASE("ConvFPropNode preValidate checks on input stride validity",
 
   attr.setX(xT).setW(wT).setY(std::make_shared<TensorAttr>());
 
-  ConvFPropNode node(std::move(attr), ctx);
+  ConvFPropNode const node(std::move(attr), ctx);
 
   auto status = node.preValidateNode();
   REQUIRE(isError(status));
@@ -212,10 +212,10 @@ TEST_CASE("ConvFPropNode preValidate checks on input stride validity",
 
 TEST_CASE("ConvFPropNode postValidate checks on output stride validity",
           "[conv_node]") {
-  Context ctx;
+  Context const ctx;
   ConvFPropAttr attr;
 
-  int64_t n = 16, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
+  const int64_t n = 16, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
 
   attr.setPadding({0, 0}).setStride({1, 1}).setDilation({1, 1});
 
@@ -252,10 +252,10 @@ TEST_CASE("ConvFPropNode postValidate checks on output stride validity",
 }
 
 TEST_CASE("ConvFPropNode rank checks", "[conv_node]") {
-  Context ctx;
+  Context const ctx;
   ConvFPropAttr attr;
 
-  int64_t n = 16, d = 2, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
+  const int64_t n = 16, d = 2, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
 
   SECTION("Input spatial dims check") {
     attr.setPadding({0}).setStride({1}).setDilation({1});
@@ -270,7 +270,7 @@ TEST_CASE("ConvFPropNode rank checks", "[conv_node]") {
         TensorAttr().setDim({n, k}).setStride({k, 1}).setName("Y_invalid"));
     attr.setX(xT).setW(wT).setY(yT);
 
-    ConvFPropNode node(std::move(attr), ctx);
+    ConvFPropNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -332,7 +332,7 @@ TEST_CASE("ConvFPropNode rank checks", "[conv_node]") {
             .setName("Y_3d"));
     attr.setX(xT).setW(wT).setY(yT);
 
-    ConvFPropNode node(std::move(attr), ctx);
+    ConvFPropNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -363,7 +363,7 @@ TEST_CASE("ConvFPropNode rank checks", "[conv_node]") {
             .setName("Y_3d"));
     attr.setX(xT).setW(wT).setY(yT);
 
-    ConvFPropNode node(std::move(attr), ctx);
+    ConvFPropNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -408,14 +408,14 @@ TEST_CASE("ConvFPropNode rank checks", "[conv_node]") {
 }
 
 TEST_CASE("ConvFPropNode group count checks", "[conv_node]") {
-  Context ctx;
+  Context const ctx;
   ConvFPropAttr attr;
 
-  int64_t n = 8, h = 16, w = 16, r = 1, s = 1;
+  const int64_t n = 8, h = 16, w = 16, r = 1, s = 1;
   attr.setPadding({0, 0}).setStride({1, 1}).setDilation({1, 1});
 
   SECTION("Valid configuration of attributes") {
-    int64_t c = 4, k = 8, fc = 2;
+    const int64_t c = 4, k = 8, fc = 2;
 
     auto xT =
         std::make_shared<TensorAttr>(TensorAttr()
@@ -437,12 +437,12 @@ TEST_CASE("ConvFPropNode group count checks", "[conv_node]") {
 
     attr.setX(xT).setW(wT).setY(yT);
 
-    ConvFPropNode node(std::move(attr), ctx);
+    ConvFPropNode const node(std::move(attr), ctx);
     FUSILLI_REQUIRE_OK(node.preValidateNode());
   }
 
   SECTION("Input channels must be divisible by the filter channels") {
-    int64_t c = 6, k = 16, fc = 4;
+    const int64_t c = 6, k = 16, fc = 4;
 
     auto xT =
         std::make_shared<TensorAttr>(TensorAttr()
@@ -464,7 +464,7 @@ TEST_CASE("ConvFPropNode group count checks", "[conv_node]") {
 
     attr.setX(xT).setW(wT).setY(yT);
 
-    ConvFPropNode node(std::move(attr), ctx);
+    ConvFPropNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -474,7 +474,7 @@ TEST_CASE("ConvFPropNode group count checks", "[conv_node]") {
   }
 
   SECTION("Output channels must be divisible by the filter channels") {
-    int64_t c = 16, k = 25, fc = 4;
+    const int64_t c = 16, k = 25, fc = 4;
 
     auto xT =
         std::make_shared<TensorAttr>(TensorAttr()
@@ -496,7 +496,7 @@ TEST_CASE("ConvFPropNode group count checks", "[conv_node]") {
 
     attr.setX(xT).setW(wT).setY(yT);
 
-    ConvFPropNode node(std::move(attr), ctx);
+    ConvFPropNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -506,7 +506,7 @@ TEST_CASE("ConvFPropNode group count checks", "[conv_node]") {
   }
 
   SECTION("Group count is in the correct range") {
-    int64_t c = 32, k = 8, fc = 2;
+    const int64_t c = 32, k = 8, fc = 2;
 
     auto xT =
         std::make_shared<TensorAttr>(TensorAttr()
@@ -528,7 +528,7 @@ TEST_CASE("ConvFPropNode group count checks", "[conv_node]") {
 
     attr.setX(xT).setW(wT).setY(yT);
 
-    ConvFPropNode node(std::move(attr), ctx);
+    ConvFPropNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -541,11 +541,11 @@ TEST_CASE("ConvFPropNode group count checks", "[conv_node]") {
 
 TEST_CASE("ConvWGradNode preValidateNode detects missing attributes",
           "[conv_wgrad_node]") {
-  Context ctx;
+  Context const ctx;
   ConvWGradAttr attr;
 
   SECTION("Padding missing") {
-    ConvWGradNode node(std::move(attr), ctx);
+    ConvWGradNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -555,7 +555,7 @@ TEST_CASE("ConvWGradNode preValidateNode detects missing attributes",
 
   SECTION("Stride missing") {
     attr.setPadding({0, 0});
-    ConvWGradNode node(std::move(attr), ctx);
+    ConvWGradNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -565,7 +565,7 @@ TEST_CASE("ConvWGradNode preValidateNode detects missing attributes",
 
   SECTION("Dilation missing") {
     attr.setPadding({0, 0}).setStride({1, 1});
-    ConvWGradNode node(std::move(attr), ctx);
+    ConvWGradNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -575,7 +575,7 @@ TEST_CASE("ConvWGradNode preValidateNode detects missing attributes",
 
   SECTION("DY tensor missing") {
     attr.setPadding({0, 0}).setStride({1, 1}).setDilation({1, 1});
-    ConvWGradNode node(std::move(attr), ctx);
+    ConvWGradNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -586,7 +586,7 @@ TEST_CASE("ConvWGradNode preValidateNode detects missing attributes",
   SECTION("X tensor missing") {
     attr.setPadding({0, 0}).setStride({1, 1}).setDilation({1, 1});
     attr.setDY(std::make_shared<TensorAttr>(1.0f));
-    ConvWGradNode node(std::move(attr), ctx);
+    ConvWGradNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -598,7 +598,7 @@ TEST_CASE("ConvWGradNode preValidateNode detects missing attributes",
     attr.setPadding({0, 0}).setStride({1, 1}).setDilation({1, 1});
     attr.setDY(std::make_shared<TensorAttr>(1.0f));
     attr.setX(std::make_shared<TensorAttr>(2.0f));
-    ConvWGradNode node(std::move(attr), ctx);
+    ConvWGradNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -614,17 +614,17 @@ TEST_CASE("ConvWGradNode preValidateNode detects missing attributes",
         TensorAttr().setDim({1, 1, 1}).setStride({1, 1, 1})));
     attr.setDW(std::make_shared<TensorAttr>(
         TensorAttr().setDim({1, 1, 1}).setStride({1, 1, 1})));
-    ConvWGradNode node(std::move(attr), ctx);
+    ConvWGradNode const node(std::move(attr), ctx);
     FUSILLI_REQUIRE_OK(node.preValidateNode());
   }
 }
 
 TEST_CASE("ConvWGradNode preValidate checks on input stride validity",
           "[conv_wgrad_node]") {
-  Context ctx;
+  Context const ctx;
   ConvWGradAttr attr;
 
-  int64_t n = 16, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
+  const int64_t n = 16, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
 
   attr.setPadding({0, 0}).setStride({1, 1}).setDilation({1, 1});
 
@@ -648,7 +648,7 @@ TEST_CASE("ConvWGradNode preValidate checks on input stride validity",
 
   attr.setDY(dyT).setX(xT).setDW(dwT);
 
-  ConvWGradNode node(std::move(attr), ctx);
+  ConvWGradNode const node(std::move(attr), ctx);
 
   auto status = node.preValidateNode();
   REQUIRE(isError(status));
@@ -659,10 +659,10 @@ TEST_CASE("ConvWGradNode preValidate checks on input stride validity",
 }
 
 TEST_CASE("ConvWGradNode rank checks", "[conv_wgrad_node]") {
-  Context ctx;
+  Context const ctx;
   ConvWGradAttr attr;
 
-  int64_t n = 16, d = 2, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
+  const int64_t n = 16, d = 2, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
 
   SECTION("Input spatial dims check (DY/X rank >= 3)") {
     attr.setPadding({0}).setStride({1}).setDilation({1});
@@ -678,7 +678,7 @@ TEST_CASE("ConvWGradNode rank checks", "[conv_wgrad_node]") {
 
     attr.setDY(dyT).setX(xT).setDW(dwT);
 
-    ConvWGradNode node(std::move(attr), ctx);
+    ConvWGradNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -744,7 +744,7 @@ TEST_CASE("ConvWGradNode rank checks", "[conv_wgrad_node]") {
 
     attr.setDY(dyT).setX(xT).setDW(dwT);
 
-    ConvWGradNode node(std::move(attr), ctx);
+    ConvWGradNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -778,7 +778,7 @@ TEST_CASE("ConvWGradNode rank checks", "[conv_wgrad_node]") {
 
     attr.setDY(dyT).setX(xT).setDW(dwT);
 
-    ConvWGradNode node(std::move(attr), ctx);
+    ConvWGradNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -790,9 +790,9 @@ TEST_CASE("ConvWGradNode rank checks", "[conv_wgrad_node]") {
 
 TEST_CASE("ConvWGradNode postValidateNode dimension validation",
           "[conv_wgrad_node]") {
-  Context ctx;
+  Context const ctx;
   ConvWGradAttr attr;
-  int64_t n = 16, c = 128, h = 64, w = 32, k = 256, r = 1, s = 1;
+  const int64_t n = 16, c = 128, h = 64, w = 32, k = 256, r = 1, s = 1;
   attr.setPadding({0, 0}).setStride({1, 1}).setDilation({1, 1});
 
   auto dyT =
@@ -833,11 +833,11 @@ TEST_CASE("ConvWGradNode postValidateNode dimension validation",
 
 TEST_CASE("ConvDGradNode preValidateNode detects missing attributes",
           "[conv_dgrad_node]") {
-  Context ctx;
+  Context const ctx;
   ConvDGradAttr attr;
 
   SECTION("Padding missing") {
-    ConvDGradNode node(std::move(attr), ctx);
+    ConvDGradNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -847,7 +847,7 @@ TEST_CASE("ConvDGradNode preValidateNode detects missing attributes",
 
   SECTION("Stride missing") {
     attr.setPadding({0, 0});
-    ConvDGradNode node(std::move(attr), ctx);
+    ConvDGradNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -857,7 +857,7 @@ TEST_CASE("ConvDGradNode preValidateNode detects missing attributes",
 
   SECTION("Dilation missing") {
     attr.setPadding({0, 0}).setStride({1, 1});
-    ConvDGradNode node(std::move(attr), ctx);
+    ConvDGradNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -867,7 +867,7 @@ TEST_CASE("ConvDGradNode preValidateNode detects missing attributes",
 
   SECTION("DY tensor missing") {
     attr.setPadding({0, 0}).setStride({1, 1}).setDilation({1, 1});
-    ConvDGradNode node(std::move(attr), ctx);
+    ConvDGradNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -878,7 +878,7 @@ TEST_CASE("ConvDGradNode preValidateNode detects missing attributes",
   SECTION("W tensor missing") {
     attr.setPadding({0, 0}).setStride({1, 1}).setDilation({1, 1});
     attr.setDY(std::make_shared<TensorAttr>(1.0f));
-    ConvDGradNode node(std::move(attr), ctx);
+    ConvDGradNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -890,7 +890,7 @@ TEST_CASE("ConvDGradNode preValidateNode detects missing attributes",
     attr.setPadding({0, 0}).setStride({1, 1}).setDilation({1, 1});
     attr.setDY(std::make_shared<TensorAttr>(1.0f));
     attr.setW(std::make_shared<TensorAttr>(1.0f));
-    ConvDGradNode node(std::move(attr), ctx);
+    ConvDGradNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -906,17 +906,17 @@ TEST_CASE("ConvDGradNode preValidateNode detects missing attributes",
         TensorAttr().setDim({1, 1, 1}).setStride({1, 1, 1})));
     attr.setDX(std::make_shared<TensorAttr>(
         TensorAttr().setDim({1, 1, 1}).setStride({1, 1, 1})));
-    ConvDGradNode node(std::move(attr), ctx);
+    ConvDGradNode const node(std::move(attr), ctx);
     FUSILLI_REQUIRE_OK(node.preValidateNode());
   }
 }
 
 TEST_CASE("ConvDGradNode preValidate checks on input stride validity",
           "[conv_dgrad_node]") {
-  Context ctx;
+  Context const ctx;
   ConvDGradAttr attr;
 
-  int64_t n = 16, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
+  const int64_t n = 16, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
 
   attr.setPadding({0, 0}).setStride({1, 1}).setDilation({1, 1});
 
@@ -937,7 +937,7 @@ TEST_CASE("ConvDGradNode preValidate checks on input stride validity",
                                        .setName("DX"));
   attr.setDY(dyT).setW(wT).setDX(dxT);
 
-  ConvDGradNode node(std::move(attr), ctx);
+  ConvDGradNode const node(std::move(attr), ctx);
 
   auto status = node.preValidateNode();
   REQUIRE(isError(status));
@@ -948,10 +948,10 @@ TEST_CASE("ConvDGradNode preValidate checks on input stride validity",
 }
 
 TEST_CASE("ConvDGradNode rank checks", "[conv_dgrad_node]") {
-  Context ctx;
+  Context const ctx;
   ConvDGradAttr attr;
 
-  int64_t n = 16, d = 2, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
+  const int64_t n = 16, d = 2, c = 128, h = 64, w = 64, k = 256, r = 1, s = 1;
 
   SECTION("Spatial dims check (DY/W rank >= 3)") {
     attr.setPadding({0}).setStride({1}).setDilation({1});
@@ -964,7 +964,7 @@ TEST_CASE("ConvDGradNode rank checks", "[conv_dgrad_node]") {
         TensorAttr().setDim({n, c}).setStride({c, 1}).setName("X_invalid"));
     attr.setDY(dyT).setW(wT).setDX(dxT);
 
-    ConvDGradNode node(std::move(attr), ctx);
+    ConvDGradNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -991,7 +991,7 @@ TEST_CASE("ConvDGradNode rank checks", "[conv_dgrad_node]") {
                                          .setName("DX_2d"));
     attr.setDY(dyT).setW(wT).setDX(dxT);
 
-    ConvDGradNode node(std::move(attr), ctx);
+    ConvDGradNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -1021,7 +1021,7 @@ TEST_CASE("ConvDGradNode rank checks", "[conv_dgrad_node]") {
             .setName("DX_3d"));
     attr.setDY(dyT).setW(wT).setDX(dxT);
 
-    ConvDGradNode node(std::move(attr), ctx);
+    ConvDGradNode const node(std::move(attr), ctx);
 
     auto status = node.preValidateNode();
     REQUIRE(isError(status));
@@ -1052,7 +1052,7 @@ TEST_CASE("ConvDGradNode rank checks", "[conv_dgrad_node]") {
                                          .setName("DX_2d"));
     attr.setDY(dyT).setW(wT).setDX(dxT);
 
-    ConvDGradNode node(std::move(attr), ctx);
+    ConvDGradNode const node(std::move(attr), ctx);
 
     FUSILLI_REQUIRE_OK(node.preValidateNode());
     auto status = node.postValidateNode();
@@ -1065,9 +1065,9 @@ TEST_CASE("ConvDGradNode rank checks", "[conv_dgrad_node]") {
 
 TEST_CASE("ConvDGradNode postValidateNode dimension validation",
           "[conv_dgrad_node]") {
-  Context ctx;
+  Context const ctx;
   ConvDGradAttr attr;
-  int64_t n = 16, c = 128, h = 64, w = 32, k = 256, r = 1, s = 1;
+  const int64_t n = 16, c = 128, h = 64, w = 32, k = 256, r = 1, s = 1;
   attr.setPadding({0, 0}).setStride({1, 1}).setDilation({1, 1});
 
   auto dyT =
