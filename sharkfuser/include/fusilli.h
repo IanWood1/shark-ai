@@ -26,12 +26,14 @@
 // Attributes / Types:
 #include "fusilli/attributes/attributes.h"           // IWYU pragma: export
 #include "fusilli/attributes/conv_attributes.h"      // IWYU pragma: export
+#include "fusilli/attributes/matmul_attributes.h"    // IWYU pragma: export
 #include "fusilli/attributes/pointwise_attributes.h" // IWYU pragma: export
 #include "fusilli/attributes/tensor_attributes.h"    // IWYU pragma: export
 #include "fusilli/attributes/types.h"                // IWYU pragma: export
 
 // Nodes:
 #include "fusilli/node/conv_node.h"      // IWYU pragma: export
+#include "fusilli/node/matmul_node.h"    // IWYU pragma: export
 #include "fusilli/node/node.h"           // IWYU pragma: export
 #include "fusilli/node/pointwise_node.h" // IWYU pragma: export
 

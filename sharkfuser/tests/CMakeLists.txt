@@ -31,6 +31,7 @@ add_fusilli_tests(
     test_attributes.cpp
     test_tensor_attributes.cpp
     test_conv_attributes.cpp
+    test_matmul_attributes.cpp
     test_pointwise_attributes.cpp
   DEPS
     libfusilli
@@ -41,6 +42,7 @@ add_fusilli_tests(
   PREFIX fusilli_node_tests
   SRCS
     test_conv_node.cpp
+    test_matmul_node.cpp
     test_pointwise_node.cpp
   DEPS
     libfusilli
@@ -301,6 +303,50 @@ add_fusilli_lit_test(
 add_fusilli_lit_test(
   SRC
     lit/test_conv_dgrad_asm_emitter_nhwc_kcrs_grouped.cpp
+  DEPS
+    libfusilli
+  TOOLS
+    FileCheck
+    iree-opt
+    iree-compile
+)
+
+add_fusilli_lit_test(
+  SRC
+    lit/test_matmul_asm_emitter_basic.cpp
+  DEPS
+    libfusilli
+  TOOLS
+    FileCheck
+    iree-opt
+    iree-compile
+)
+
+add_fusilli_lit_test(
+  SRC
+    lit/test_matmul_asm_emitter_batched.cpp
+  DEPS
+    libfusilli
+  TOOLS
+    FileCheck
+    iree-opt
+    iree-compile
+)
+
+add_fusilli_lit_test(
+  SRC
+    lit/test_matmul_asm_emitter_broadcast.cpp
+  DEPS
+    libfusilli
+  TOOLS
+    FileCheck
+    iree-opt
+    iree-compile
+)
+
+add_fusilli_lit_test(
+  SRC
+    lit/test_matmul_asm_emitter_noncontiguous.cpp
   DEPS
     libfusilli
   TOOLS
